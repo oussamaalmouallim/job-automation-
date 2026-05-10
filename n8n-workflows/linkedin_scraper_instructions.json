@@ -1,0 +1,23 @@
+{
+  "_readme": "Ce fichier est une version MODIFIÉE de ton scraper linkedin_scraper.json",
+  "_instructions": [
+    "1. Ouvre n8n et importe ce fichier",
+    "2. Le workflow ajoute un nœud 'Respond to Webhook' à la fin",
+    "   pour retourner les profils directement au frontend en JSON",
+    "3. Remplace le trigger 'chatTrigger' par un nœud 'Webhook' classique",
+    "   pour recevoir des appels HTTP depuis le frontend",
+    "4. Configure l'URL du webhook dans le .env frontend/backend"
+  ],
+  "_n8n_modification_steps": {
+    "step1": "Dans n8n, ouvre le workflow linkedin-scraper",
+    "step2": "Supprime le nœud 'When chat message received' (chatTrigger)",
+    "step3": "Ajoute un nœud 'Webhook' (HTTP Method: POST, Path: /scraper)",
+    "step4": "Connecte-le à 'Set Fields'",
+    "step5": "Après le nœud 'Add to Google', ajoute un nœud 'Respond to Webhook'",
+    "step6": "Configure 'Respond to Webhook' pour retourner le JSON des profils",
+    "step7": "Sauvegarde et active le workflow",
+    "step8": "Copie l'URL du webhook dans VITE_N8N_SCRAPER_WEBHOOK dans le .env"
+  },
+  "_current_flow": "chatTrigger → Set Fields → Search Google → Extract Results → Wait → Add to Google → Pagination → Pagination Check → [loop]",
+  "_target_flow":  "Webhook(HTTP) → Set Fields → Search Google → Extract Results → Wait → Add to Google → Pagination → Pagination Check → [loop] → Respond to Webhook(JSON)"
+}
