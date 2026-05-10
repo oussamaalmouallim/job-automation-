@@ -1,0 +1,388 @@
+{
+  "name": "linkedin-scraper",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        3648,
+        384
+      ],
+      "id": "fb2e742f-b255-4af9-8aa3-c8cbfee40460",
+      "name": "When chat message received",
+      "webhookId": "c75fc8db-4a21-4ea1-8e8e-56c5a8e95f1b",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cc27b2d9-8de7-43ca-a741-2d150084f78e",
+              "name": "currentStartIndex",
+              "value": 1,
+              "type": "number"
+            },
+            {
+              "id": "fc552c57-4510-4f04-aa09-2294306d0d9f",
+              "name": "maxPages",
+              "value": 10,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3840,
+        384
+      ],
+      "id": "4aa40de8-deca-41eb-a1ef-18e2795e851b",
+      "name": "Set Fields"
+    },
+    {
+      "parameters": {
+        "url": "https://www.googleapis.com/customsearch/v1",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "AIzaSyBH3waPpQj9s4u9PmwSf-JqazFf-5LrQuw"
+            },
+            {
+              "name": "cx",
+              "value": "e6bcdb6af89d542cb"
+            },
+            {
+              "name": "q",
+              "value": "recrutement IT maroc site:linkedin.com/in"
+            },
+            {
+              "name": "start",
+              "value": "={{ $runIndex == 0 ? $node[\"Set Fields\"].json.currentStartIndex : $node[\"Pagination Check\"].json.startIndex }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4016,
+        384
+      ],
+      "id": "cbef5106-9fbe-4a6f-bcb0-74b5063dcfe3",
+      "name": "Search Google"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the response data\nconst response = $input.first().json;\nconst items = response.items || [];\n\n// Track pagination info\nlet nextStartIndex = 1;\nif (response.queries && response.queries.nextPage && response.queries.nextPage[0]) {\n  nextStartIndex = response.queries.nextPage[0].startIndex;\n}\n\n// Calculate if we should continue (Google only allows up to 100 results)\nconst hasMoreResults = nextStartIndex <= 100;\n\n// Process the items and include pagination info in each item\nconst results = items.map(item => {\n  const titleParts = item.title.split(\" - \");\n  return {\n    name: titleParts[0] || null,\n    title: titleParts.slice(1).join(\" - \") || null,\n    link: item.link || null,\n    snippet: item.snippet || null,\n    image: item.pagemap?.cse_thumbnail?.[0]?.src || null,\n    // Add pagination info to each item\n    startIndex: nextStartIndex,\n    hasMoreResults: hasMoreResults\n  };\n});\n\n// If there are no results, return at least one item with pagination info\nif (results.length === 0) {\n  return [{ \n    json: {\n      name: null,\n      title: null,\n      link: null,\n      snippet: null,\n      image: null,\n      startIndex: nextStartIndex,\n      hasMoreResults: false\n    }\n  }];\n}\n\n// Return the processed results\nreturn results.map(r => ({ json: r }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4192,
+        384
+      ],
+      "id": "e858f65b-dcb1-47c2-81ae-6a4ff0d57ad5",
+      "name": "Extract Results"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1HVx8J7ohPqvklvJJYgfMr-G6ZQStXvx3Vb7qhbJfPiQ",
+          "mode": "list",
+          "cachedResultName": "Linkedin scrapping",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1HVx8J7ohPqvklvJJYgfMr-G6ZQStXvx3Vb7qhbJfPiQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1284260531,
+          "mode": "list",
+          "cachedResultName": "SCRAPPING",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1HVx8J7ohPqvklvJJYgfMr-G6ZQStXvx3Vb7qhbJfPiQ/edit#gid=1284260531"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "NAME": "={{ $json.name }}",
+            "TITLE": "={{ $json.title }}",
+            "LINK": "={{ $json.link }}",
+            "SNIPPET": "={{ $json.snippet }}",
+            "IMAGE": "={{ $json.image }}",
+            "INDEX": "={{ $json.startIndex }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "NAME",
+              "displayName": "NAME",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "TITLE",
+              "displayName": "TITLE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "LINK",
+              "displayName": "LINK",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "SNIPPET",
+              "displayName": "SNIPPET",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "IMAGE",
+              "displayName": "IMAGE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "INDEX",
+              "displayName": "INDEX",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        4560,
+        384
+      ],
+      "id": "cfe0b2cf-7b23-4c6c-9d5c-b8df7148f1ec",
+      "name": "Add to Google",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "qfNjjIRCiQsWoFtm",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all input items\nconst inputItems = $input.all();\nconsole.log(\"Input items count:\", inputItems.length);\n\n// Extract pagination values with fallbacks\nlet nextStartIndex = 1;\nlet hasMoreResults = false;\n\n// Try different approaches to find the pagination info\nif (inputItems && inputItems.length > 0) {\n  const firstItem = inputItems[0];\n  \n  // Check direct properties\n  if (firstItem.json) {\n    console.log(\"First item JSON:\", JSON.stringify(firstItem.json));\n    \n    // Check for \"index\" property (instead of startIndex)\n    if (firstItem.json.index !== undefined) {\n      nextStartIndex = firstItem.json.index;\n      console.log(\"Found index:\", nextStartIndex);\n    }\n    \n    // Check for \"results\" property (instead of hasMoreResults)\n    if (firstItem.json.results !== undefined) {\n      hasMoreResults = firstItem.json.results;\n      console.log(\"Found results:\", hasMoreResults);\n    }\n  }\n}\n\n// Return pagination control info\nreturn {\n  json: {\n    continueLoop: hasMoreResults,\n    startIndex: nextStartIndex\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4736,
+        384
+      ],
+      "id": "a929cefe-0f67-48f8-b094-b226b06e5791",
+      "name": "Pagination"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "faef2862-80a4-465b-9e0b-be5b9753dcbd",
+              "leftValue": "={{ $json.continueLoop }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        4912,
+        384
+      ],
+      "id": "ed630c93-88fd-404e-9d6b-8237cd07649d",
+      "name": "Pagination Check"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        4368,
+        384
+      ],
+      "id": "073ea4d1-49cd-4347-b978-adf28e9a740d",
+      "name": "Wait",
+      "webhookId": "d3bbbd53-2135-45e5-a847-aad35b1c518e"
+    },
+    {
+      "parameters": {
+        "content": "## Google API Instructions\n\n1. Go to [Google Cloud Console](https://console.cloud.google.com/)\n   - Create a new project  \n   - Enable **Custom Search API**  \n   - Go to **Credentials** and copy your **API Key**\n\n2. Go to [Programmable Search Engine](https://programmablesearchengine.google.com/controlpanel/create)\n   - Create a name  \n   - Select **Search entire web**  \n   - Copy the **cx** value\n\n## Usage Limits (Free Tier)\n\n- The free tier of the Google Custom Search API allows **100 requests per day**\n- Each request returns **up to 10 search results**\n- This means you can get **up to 1,000 search results per day** at no cost\n",
+        "height": 500,
+        "width": 360,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3088,
+        192
+      ],
+      "id": "35e1e36b-9692-4b39-81bd-25598f2d5f6c",
+      "name": "Sticky Note"
+    }
+  ],
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Set Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Fields": {
+      "main": [
+        [
+          {
+            "node": "Search Google",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Google": {
+      "main": [
+        [
+          {
+            "node": "Extract Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Results": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add to Google": {
+      "main": [
+        [
+          {
+            "node": "Pagination",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pagination": {
+      "main": [
+        [
+          {
+            "node": "Pagination Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pagination Check": {
+      "main": [
+        [
+          {
+            "node": "Search Google",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Add to Google",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "pinData": {},
+  "triggerCount": 0,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}
