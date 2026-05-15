@@ -26,7 +26,7 @@ export const getScraperResults = async () => []
 
 // ─── GÉNÉRATEUR DE POSTS (Phase 1) ───────────────────────────────
 export const generatePost = async ({ type, description, tech, tone, model }) => {
-  const res = await axios.post(import.meta.env.VITE_N8N_POST_WEBHOOK, { type, description, tech, tone, model })
+  const res = await axios.post('/api/posts/generate', { type, description, tech, tone, model })
   return res.data
 }
 
