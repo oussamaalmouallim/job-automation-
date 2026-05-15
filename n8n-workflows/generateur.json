@@ -1,0 +1,250 @@
+{
+  "name": "generate-post-linkedin",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generate-post",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -176,
+        0
+      ],
+      "id": "7a49b4af-2000-406d-a361-902effea36df",
+      "name": "Webhook",
+      "webhookId": "ee8b29d3-17b3-4d67-9226-042964d986ef"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "type",
+              "value": "={{ $json.body.type || 'Projet technique' }}",
+              "type": "string",
+              "id": "e5422d7d-2cd5-43e5-bd45-79d69ea0770f"
+            },
+            {
+              "name": "description",
+              "value": "={{ $json.body.description || '' }}",
+              "type": "string",
+              "id": "d5d4d2de-9a49-4716-a302-4188bd0ee4b8"
+            },
+            {
+              "name": "tech",
+              "value": "={{ $json.body.tech || '' }}",
+              "type": "string",
+              "id": "df6144b9-8555-4874-9d62-41aab45a92f5"
+            },
+            {
+              "name": "tone",
+              "value": "={{ $json.body.tone || 'Professionnel' }}",
+              "type": "string",
+              "id": "92c17707-b663-4a4f-8a73-010c30dce608"
+            },
+            {
+              "name": "model",
+              "value": "={{ $json.body.model || 'deepseek' }}",
+              "type": "string",
+              "id": "51148234-0031-4969-877e-0a508145986b"
+            },
+            {
+              "name": "prompt",
+              "value": "=Tu es un expert LinkedIn copywriter. Rédige un post LinkedIn en français pour un ingénieur.\n\nType de post: ' + $json.body.type + '\nDescription: ' + $json.body.description + '\nTechnologies: ' + ($json.body.tech || 'non spécifié') + '\nTon souhaité: ' + ($json.body.tone || 'Professionnel') + '\n\nRègles:\n- Accroche forte dès la première ligne\n- Contenu concret et utile\n- Terminer par une question engageante\n- 5 à 8 hashtags pertinents à la fin\n- Entre 150 et 250 mots\n- Ton humain et authentique\n\nRéponds uniquement avec le texte du post, sans commentaire.",
+              "type": "string",
+              "id": "a2256c56-809d-460f-a19c-5d02b2b6eb95"
+            },
+            {
+              "name": "modelId",
+              "value": "={{ $json.body.model === 'gemini' ? 'google/gemini-2.0-flash-exp:free' : $json.body.model === 'grok' ? 'x-ai/grok-3-mini-beta' : 'deepseek/deepseek-chat' }}",
+              "type": "string",
+              "id": "894c5813-c19c-49ee-81e5-385f1853b404"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        80,
+        0
+      ],
+      "id": "80c05e60-562d-433e-8093-6cafd1507d13",
+      "name": "Set Params"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$env.OPENROUTER_API_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "HTTP-Referer",
+              "value": "http://localhost:3000"
+            },
+            {
+              "name": "X-Title",
+              "value": "LinkedAI"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "={{ $json.modelId }}"
+            },
+            {
+              "name": "messages",
+              "value": "={{ JSON.stringify([{ role: 'user', content: $json.prompt }]) }}"
+            },
+            {
+              "name": "max_tokens",
+              "value": "=1000"
+            },
+            {
+              "name": "temperature",
+              "value": "=0.8"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        448,
+        0
+      ],
+      "id": "72e7491d-ddf4-4101-ab90-2e8d8e2e133e",
+      "name": "OpenRouter API"
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\n\nlet postText = '';\ntry {\n  postText = response.choices[0].message.content;\n} catch(e) {\n  postText = 'Erreur lors de la génération du post.';\n}\n\nconst model = $('Set Params').first().json.model;\nconst type  = $('Set Params').first().json.type;\n\nreturn [{\n  json: {\n    success: true,\n    post: postText,\n    model: model,\n    type: type,\n    chars: postText.length,\n    generatedAt: new Date().toISOString()\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ],
+      "id": "9d9633ba-0aad-47f9-ad4a-f6ab25157fcd",
+      "name": "Extract Post"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        0
+      ],
+      "id": "7564f1d2-e5a8-444d-8296-f06d62fc8c20",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $('Set Params').first().json;\n\nconst type        = body.type        || 'Projet technique';\nconst description = body.description || '';\nconst tech        = body.tech        || 'non spécifié';\nconst tone        = body.tone        || 'Professionnel';\nconst model       = body.model       || 'deepseek';\n\nconst prompt = `Tu es un expert LinkedIn copywriter. Rédige un post LinkedIn en français pour un ingénieur.\n\nType de post: ${type}\nDescription: ${description}\nTechnologies: ${tech}\nTon souhaité: ${tone}\n\nRègles:\n- Accroche forte dès la première ligne\n- Contenu concret et utile\n- Terminer par une question engageante\n- 5 à 8 hashtags pertinents à la fin\n- Entre 150 et 250 mots\n- Ton humain et authentique\n\nRéponds uniquement avec le texte du post, sans commentaire.`;\n\nconst modelId = model === 'gemini' ? 'google/gemini-2.0-flash-exp:free'\n              : model === 'grok'   ? 'x-ai/grok-3-mini-beta'\n              :                     'deepseek/deepseek-chat';\n\nreturn [{ json: { type, description, tech, tone, model, prompt, modelId } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        272,
+        0
+      ],
+      "id": "3fd00b35-c037-462f-a3ae-4659e8898cd7",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Set Params",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Params": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter API": {
+      "main": [
+        [
+          {
+            "node": "Extract Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Post": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "OpenRouter API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "04886bff-5f8b-433c-8109-ccb50122224c",
+  "meta": {
+    "instanceId": "3651a4a1c99efe29bdec048f756d7c2e9c95473800edbab4506ca92ac21891db"
+  },
+  "id": "vOFW1SerTsTzxc4g",
+  "tags": []
+}

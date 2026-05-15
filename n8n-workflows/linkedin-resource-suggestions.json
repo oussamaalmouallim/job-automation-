@@ -1,0 +1,158 @@
+{
+  "name": "linkedin-resource-suggestions",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "resource-suggestions",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -200,
+        0
+      ],
+      "id": "webhook-resource-01",
+      "name": "Webhook",
+      "webhookId": "resource-suggestions"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\n\nconst post = body.post || '';\nconst tech = body.tech || '';\nconst type = body.type || 'Projet technique';\nconst unsplashKey = body.unsplashKey || 'YOUR_UNSPLASH_ACCESS_KEY';\n\nconst techList = tech.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);\nconst postLower = post.toLowerCase();\n\nlet imageQuery = 'technology developer coding';\nlet visualType = 'image';\nlet docLinks = [];\nlet tips = [];\n\n// Détection intelligente\nif (techList.some(t => ['aws', 'ec2', 'lambda', 's3', 'cloudfront', 'dynamodb'].includes(t)) || postLower.includes('aws')) {\n  imageQuery = 'AWS cloud infrastructure serverless technology';\n  visualType = 'architecture diagram / infra cloud';\n  docLinks = [\n    { title: 'AWS Architecture Center', url: 'https://aws.amazon.com/architecture/', type: 'reference' },\n    { title: 'AWS Pricing Calculator', url: 'https://calculator.aws/', type: 'tool' },\n    { title: 'AWS Well-Architected', url: 'https://docs.aws.amazon.com/wellarchitected/latest/framework/welcome.html', type: 'pdf' }\n  ];\n  tips.push('Ajoutez un diagramme d'architecture Cloudcraft ou Draw.io pour illustrer votre infra AWS');\n}\n\nif (techList.some(t => ['react', 'next.js', 'vue', 'angular', 'frontend'].includes(t)) || postLower.includes('react')) {\n  imageQuery = techList.some(t => t.includes('aws')) ? 'react developer cloud coding' : 'react javascript frontend developer';\n  if (!visualType.includes('diagram')) visualType = 'UI screenshot / component mockup';\n  docLinks.push({ title: 'React Documentation', url: 'https://react.dev/', type: 'reference' });\n}\n\nif (techList.some(t => ['node.js', 'express', 'fastapi', 'backend'].includes(t))) {\n  if (imageQuery === 'technology developer coding') imageQuery = 'nodejs backend server code';\n  docLinks.push({ title: 'Node.js Best Practices', url: 'https://github.com/goldbergyoni/nodebestpractices', type: 'github' });\n}\n\nif (techList.some(t => ['docker', 'kubernetes', 'k8s', 'devops', 'ci/cd'].includes(t)) || postLower.includes('devops')) {\n  imageQuery = 'devops docker kubernetes containers';\n  visualType = 'CI/CD pipeline diagram';\n  docLinks.push({ title: 'Docker Best Practices', url: 'https://docs.docker.com/develop/dev-best-practices/', type: 'reference' });\n}\n\nif (type.toLowerCase().includes('retour') || type.toLowerCase().includes('expérience')) {\n  tips.push('Un post \"retour d'expérience\" performe mieux avec une image \"before/after\" ou un graphique de metrics');\n}\n\ntips.push('Les posts LinkedIn avec image génèrent 40% plus d'engagement');\ntips.push('Créditez l'auteur Unsplash si vous utilisez leurs photos');\n\nreturn [{\n  json: {\n    imageQuery,\n    visualType,\n    docLinks,\n    tips,\n    unsplashKey,\n    _meta: { techDetected: techList, postLength: post.length }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "analyze-content-01",
+      "name": "Analyze Content"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.unsplash.com/search/photos",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "={{ $json.imageQuery }}"
+            },
+            {
+              "name": "per_page",
+              "value": "=3"
+            },
+            {
+              "name": "orientation",
+              "value": "=landscape"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Client-ID {{ $json.unsplashKey }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        200,
+        0
+      ],
+      "id": "unsplash-api-01",
+      "name": "Unsplash API"
+    },
+    {
+      "parameters": {
+        "jsCode": "const unsplash = $input.first().json;\nconst analyze = $('Analyze Content').first().json;\n\nlet images = [];\n\nif (unsplash.results && unsplash.results.length > 0) {\n  images = unsplash.results.map(img => ({\n    url: img.urls.regular,\n    thumb: img.urls.small,\n    alt: img.alt_description || analyze.imageQuery,\n    author: img.user.name,\n    authorLink: img.user.links.html,\n    credit: `Photo by ${img.user.name} on Unsplash`,\n    downloadLocation: img.links.download_location\n  }));\n} else {\n  // Fallback si quota Unsplash dépassé ou erreur\n  images = [{\n    url: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&q=80',\n    thumb: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=400&q=80',\n    alt: analyze.imageQuery,\n    author: 'NASA',\n    authorLink: 'https://unsplash.com/@nasa',\n    credit: 'Photo by NASA on Unsplash',\n    downloadLocation: ''\n  }];\n}\n\nreturn [{\n  json: {\n    success: true,\n    suggestedVisualType: analyze.visualType,\n    searchQuery: analyze.imageQuery,\n    images,\n    documents: analyze.docLinks,\n    tips: analyze.tips,\n    generatedAt: new Date().toISOString()\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        0
+      ],
+      "id": "format-resources-01",
+      "name": "Format Resources"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        600,
+        0
+      ],
+      "id": "respond-resource-01",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Analyze Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Content": {
+      "main": [
+        [
+          {
+            "node": "Unsplash API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unsplash API": {
+      "main": [
+        [
+          {
+            "node": "Format Resources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Resources": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [],
+  "versionId": "resource-v1-2026"
+}
