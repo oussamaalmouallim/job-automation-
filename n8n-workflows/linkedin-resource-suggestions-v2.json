@@ -1,0 +1,163 @@
+{
+  "name": "linkedin-resource-suggestions",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "resource-suggestions",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        1024,
+        176
+      ],
+      "id": "b62488f7-b0c1-48b2-881c-bbc10c6bd777",
+      "name": "Webhook",
+      "webhookId": "resource-suggestions"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\n\nconst post = body.post || ``;\nconst tech = body.tech || ``;\nconst type = body.type || `Projet technique`;\nconst unsplashKey = body.unsplashKey || `RniQGt38LSXi9a-tQjT3AhehqiPVGbT_eZbnPeIQ2Wo`;\n\nconst techList = tech.split(`,`).map(t => t.trim().toLowerCase()).filter(Boolean);\nconst postLower = post.toLowerCase();\n\nlet imageQuery = `technology developer coding`;\nlet visualType = `image`;\nlet docLinks = [];\nlet tips = [];\n\n// Detection intelligente\nif (techList.some(t => [`aws`, `ec2`, `lambda`, `s3`, `cloudfront`, `dynamodb`].includes(t)) || postLower.includes(`aws`)) {\n  imageQuery = `AWS cloud infrastructure serverless technology`;\n  visualType = `architecture diagram / infra cloud`;\n  docLinks = [\n    { title: `AWS Architecture Center`, url: `https://aws.amazon.com/architecture/`, type: `reference` },\n    { title: `AWS Pricing Calculator`, url: `https://calculator.aws/`, type: `tool` },\n    { title: `AWS Well-Architected`, url: `https://docs.aws.amazon.com/wellarchitected/latest/framework/welcome.html`, type: `pdf` }\n  ];\n  tips.push(`Ajoutez un diagramme d'architecture Cloudcraft ou Draw.io pour illustrer votre infra AWS`);\n}\n\nif (techList.some(t => [`react`, `next.js`, `vue`, `angular`, `frontend`].includes(t)) || postLower.includes(`react`)) {\n  imageQuery = techList.some(t => t.includes(`aws`)) ? `react developer cloud coding` : `react javascript frontend developer`;\n  if (!visualType.includes(`diagram`)) visualType = `UI screenshot / component mockup`;\n  docLinks.push({ title: `React Documentation`, url: `https://react.dev/`, type: `reference` });\n}\n\nif (techList.some(t => [`node.js`, `express`, `fastapi`, `backend`].includes(t))) {\n  if (imageQuery === `technology developer coding`) imageQuery = `nodejs backend server code`;\n  docLinks.push({ title: `Node.js Best Practices`, url: `https://github.com/goldbergyoni/nodebestpractices`, type: `github` });\n}\n\nif (techList.some(t => [`docker`, `kubernetes`, `k8s`, `devops`, `ci/cd`].includes(t)) || postLower.includes(`devops`)) {\n  imageQuery = `devops docker kubernetes containers`;\n  visualType = `CI/CD pipeline diagram`;\n  docLinks.push({ title: `Docker Best Practices`, url: `https://docs.docker.com/develop/dev-best-practices/`, type: `reference` });\n}\n\nif (type.toLowerCase().includes(`retour`) || type.toLowerCase().includes(`experience`)) {\n  tips.push(`Un post \"retour d'experience\" performe mieux avec une image \"before/after\" ou un graphique de metrics`);\n}\n\ntips.push(`Les posts LinkedIn avec image generent 40% plus d'engagement`);\ntips.push(`Creditez l'auteur Unsplash si vous utilisez leurs photos`);\n\nreturn [{\n  json: {\n    imageQuery,\n    visualType,\n    docLinks,\n    tips,\n    unsplashKey,\n    _meta: { techDetected: techList, postLength: post.length }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1232,
+        176
+      ],
+      "id": "20f3bbbe-a6e5-45f4-b219-c5209cfd8b9a",
+      "name": "Analyze Content"
+    },
+    {
+      "parameters": {
+        "url": "https://api.unsplash.com/search/photos",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "={{ $json.imageQuery }}"
+            },
+            {
+              "name": "per_page",
+              "value": "=3"
+            },
+            {
+              "name": "orientation",
+              "value": "=landscape"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Client-ID mIvZ1kxR3k3O5zOfqnXmNRsOztU8btqwSSZsjoxWp1A"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1424,
+        176
+      ],
+      "id": "7b8908a6-cfb1-4966-9954-5fe1e599d2c6",
+      "name": "Unsplash API"
+    },
+    {
+      "parameters": {
+        "jsCode": "const unsplash = $input.first().json;\nconst analyze = $(`Analyze Content`).first().json;\n\nlet images = [];\n\nif (unsplash.results && unsplash.results.length > 0) {\n  images = unsplash.results.map(img => ({\n    url: img.urls.regular,\n    thumb: img.urls.small,\n    alt: img.alt_description || analyze.imageQuery,\n    author: img.user.name,\n    authorLink: img.user.links.html,\n    credit: `Photo by ` + img.user.name + ` on Unsplash`,\n    downloadLocation: img.links.download_location\n  }));\n} else {\n  images = [{\n    url: `https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&q=80`,\n    thumb: `https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=400&q=80`,\n    alt: analyze.imageQuery,\n    author: `NASA`,\n    authorLink: `https://unsplash.com/@nasa`,\n    credit: `Photo by NASA on Unsplash`,\n    downloadLocation: ``\n  }];\n}\n\nreturn [{\n  json: {\n    success: true,\n    suggestedVisualType: analyze.visualType,\n    searchQuery: analyze.imageQuery,\n    images,\n    documents: analyze.docLinks,\n    tips: analyze.tips,\n    generatedAt: new Date().toISOString()\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1632,
+        176
+      ],
+      "id": "cc05360a-1811-46cb-aa9c-dfe65685b82b",
+      "name": "Format Resources"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1824,
+        176
+      ],
+      "id": "71ad7d1d-5e95-45c4-b202-acdd02edc8bd",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Analyze Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Content": {
+      "main": [
+        [
+          {
+            "node": "Unsplash API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unsplash API": {
+      "main": [
+        [
+          {
+            "node": "Format Resources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Resources": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "c9cf1f78-3293-4ad1-8304-526755ce0dbd",
+  "meta": {
+    "instanceId": "3651a4a1c99efe29bdec048f756d7c2e9c95473800edbab4506ca92ac21891db"
+  },
+  "id": "uqwNd5Or1lrQ6feo",
+  "tags": []
+}

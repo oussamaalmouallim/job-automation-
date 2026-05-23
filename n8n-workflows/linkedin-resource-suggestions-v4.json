@@ -1,0 +1,165 @@
+{
+  "name": "linkedin-resource-suggestions-v4",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "resource-suggestions",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "id": "node-webhook",
+      "name": "Webhook",
+      "webhookId": "resource-suggestions"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst post = body.post || '';\nconst tech = body.tech || '';\nconst type = body.type || 'Projet technique';\n\nconst prompt = 'Analyse ce post LinkedIn et génère UNE requête de recherche image en anglais (3-5 mots max) professionnelle. Post: ' + post.substring(0, 400) + ' Technologies: ' + tech + '. Réponds UNIQUEMENT avec la requête en anglais. Exemple: cloud security dashboard professional';\n\nreturn [{ json: { post, tech, type, prompt } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300],
+      "id": "node-analyze",
+      "name": "Analyze Content"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer REMPLACE_PAR_TA_CLE_OPENROUTER"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "HTTP-Referer",
+              "value": "http://localhost:3000"
+            },
+            {
+              "name": "X-Title",
+              "value": "LinkedAI"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({\"model\": \"deepseek/deepseek-chat\", \"messages\": [{\"role\": \"user\", \"content\": $json.prompt}], \"max_tokens\": 20, \"temperature\": 0.3}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300],
+      "id": "node-openrouter",
+      "name": "OpenRouter AI"
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst prev = $('Analyze Content').first().json;\n\nlet imageQuery = 'professional developer workspace technology';\ntry {\n  imageQuery = response.choices[0].message.content.trim().replace(/\"/g, '').replace(/\\n/g, ' ');\n} catch(e) {\n  imageQuery = 'professional developer workspace technology';\n}\n\nconst tech = prev.tech || '';\nconst techList = tech.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);\nconst postLower = prev.post.toLowerCase();\n\nlet docLinks = [];\nlet tips = [];\n\nif (postLower.includes('accès') || postLower.includes('auth') || postLower.includes('sécurité') || postLower.includes('login')) {\n  docLinks.push({ title: 'OWASP Auth Cheatsheet', url: 'https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html', type: 'reference' });\n  docLinks.push({ title: 'JWT.io', url: 'https://jwt.io/', type: 'tool' });\n}\nif (techList.includes('prisma')) {\n  docLinks.push({ title: 'Prisma Documentation', url: 'https://www.prisma.io/docs', type: 'reference' });\n}\nif (techList.includes('react') || techList.includes('next.js')) {\n  docLinks.push({ title: 'React Documentation', url: 'https://react.dev/', type: 'reference' });\n}\nif (techList.some(t => ['node.js','express','nodejs'].includes(t))) {\n  docLinks.push({ title: 'Node.js Best Practices', url: 'https://github.com/goldbergyoni/nodebestpractices', type: 'github' });\n}\nif (techList.some(t => ['aws','gcp','azure','cloud'].includes(t))) {\n  docLinks.push({ title: 'AWS Architecture Center', url: 'https://aws.amazon.com/architecture/', type: 'reference' });\n}\nif (techList.some(t => ['docker','kubernetes','k8s'].includes(t))) {\n  docLinks.push({ title: 'Docker Best Practices', url: 'https://docs.docker.com/develop/dev-best-practices/', type: 'reference' });\n}\nif (techList.includes('n8n')) {\n  docLinks.push({ title: 'n8n Documentation', url: 'https://docs.n8n.io/', type: 'reference' });\n}\nif (techList.some(t => ['python','pandas','numpy'].includes(t))) {\n  docLinks.push({ title: 'Python Best Practices', url: 'https://docs.python-guide.org/', type: 'reference' });\n}\nif (techList.some(t => ['postgresql','mysql','mongodb','supabase'].includes(t))) {\n  docLinks.push({ title: 'Database Design Guide', url: 'https://www.postgresql.org/docs/current/index.html', type: 'reference' });\n}\nif (techList.some(t => ['html','css','javascript'].includes(t))) {\n  docLinks.push({ title: 'MDN Web Docs', url: 'https://developer.mozilla.org/', type: 'reference' });\n}\n\nif (postLower.includes('projet') || postLower.includes('app') || postLower.includes('application')) {\n  tips.push('Une démo GIF de ton app génère 3x plus d engagement qu une image statique');\n}\nif (postLower.includes('automatisation') || postLower.includes('workflow')) {\n  tips.push('Une capture de ton workflow n8n est le visuel idéal pour ce type de post');\n}\nif (postLower.includes('conseil') || postLower.includes('astuce')) {\n  tips.push('Un carousel LinkedIn (PDF multi-pages) performe mieux pour les conseils');\n}\ntips.push('Poste entre 8h-10h ou 17h-19h pour maximiser la visibilité');\ntips.push('Les posts avec image génèrent 40% plus d engagement sur LinkedIn');\n\nreturn [{ json: { imageQuery, docLinks, tips, visualType: imageQuery } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300],
+      "id": "node-build-query",
+      "name": "Build Query"
+    },
+    {
+      "parameters": {
+        "url": "https://api.unsplash.com/search/photos",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "={{ $json.imageQuery }}"
+            },
+            {
+              "name": "per_page",
+              "value": "3"
+            },
+            {
+              "name": "orientation",
+              "value": "landscape"
+            },
+            {
+              "name": "content_filter",
+              "value": "high"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Client-ID mIvZ1kxR3k3O5zOfqnXmNRsOztU8btqwSSZsjoxWp1A"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 300],
+      "id": "node-unsplash",
+      "name": "Unsplash API"
+    },
+    {
+      "parameters": {
+        "jsCode": "const unsplash = $input.first().json;\nconst buildQuery = $('Build Query').first().json;\n\nlet images = [];\n\nif (unsplash.results && unsplash.results.length > 0) {\n  images = unsplash.results.map(img => ({\n    url: img.urls.regular,\n    thumb: img.urls.small,\n    alt: img.alt_description || buildQuery.imageQuery,\n    author: img.user.name,\n    authorLink: img.user.links.html,\n    credit: 'Photo by ' + img.user.name + ' on Unsplash',\n    downloadLocation: img.links.download_location\n  }));\n} else {\n  images = [{\n    url: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&q=80',\n    thumb: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&q=80',\n    alt: 'Technology',\n    author: 'Unsplash',\n    authorLink: 'https://unsplash.com',\n    credit: 'Photo on Unsplash',\n    downloadLocation: ''\n  }];\n}\n\nreturn [{\n  json: {\n    success: true,\n    suggestedVisualType: buildQuery.visualType,\n    searchQuery: buildQuery.imageQuery,\n    images,\n    documents: buildQuery.docLinks,\n    tips: buildQuery.tips,\n    generatedAt: new Date().toISOString()\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 300],
+      "id": "node-format",
+      "name": "Format Resources"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1560, 300],
+      "id": "node-respond",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Analyze Content", "type": "main", "index": 0 }]]
+    },
+    "Analyze Content": {
+      "main": [[{ "node": "OpenRouter AI", "type": "main", "index": 0 }]]
+    },
+    "OpenRouter AI": {
+      "main": [[{ "node": "Build Query", "type": "main", "index": 0 }]]
+    },
+    "Build Query": {
+      "main": [[{ "node": "Unsplash API", "type": "main", "index": 0 }]]
+    },
+    "Unsplash API": {
+      "main": [[{ "node": "Format Resources", "type": "main", "index": 0 }]]
+    },
+    "Format Resources": {
+      "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}
