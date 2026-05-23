@@ -42,4 +42,14 @@ export const searchJobs = async ({ query, location, remote, stack }) => {
   return res.data
 }
 
+// ─── RESSOURCES (images + docs selon contexte du post) ────────────
+export const getResources = async ({ post, tech, type }) => {
+  const res = await axios.post('/n8n/webhook/resource-suggestions', {
+    post,
+    tech,
+    type,
+  })
+  return res.data
+}
+
 export default api
