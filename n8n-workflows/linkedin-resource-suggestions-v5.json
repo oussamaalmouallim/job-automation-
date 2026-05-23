@@ -1,0 +1,106 @@
+{
+  "name": "linkedin-visual-generator",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generate-visual",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "id": "node-webhook",
+      "name": "Webhook",
+      "webhookId": "generate-visual"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst post = body.post || '';\nconst tech = body.tech || '';\nconst type = body.type || 'Projet technique';\nconst postLower = post.toLowerCase();\nconst techLower = tech.toLowerCase();\n\nlet visualType = 'architecture';\n\nif (postLower.includes('conseil') || postLower.includes('astuce') || type.toLowerCase().includes('conseil')) {\n  visualType = 'tips';\n} else if (postLower.includes('avant') || postLower.includes('before') || postLower.includes('divisé') || postLower.includes('réduit') || postLower.includes('amélioration')) {\n  visualType = 'before_after';\n} else if (techLower.includes('aws') || techLower.includes('gcp') || techLower.includes('cloud') || techLower.includes('lambda') || techLower.includes('docker') || techLower.includes('kubernetes')) {\n  visualType = 'architecture';\n} else if (postLower.includes('étape') || postLower.includes('workflow') || postLower.includes('pipeline') || postLower.includes('processus') || techLower.includes('n8n')) {\n  visualType = 'flowchart';\n} else if (postLower.includes('statistique') || postLower.includes('résultat') || postLower.includes('performance') || postLower.includes('métrique')) {\n  visualType = 'stats';\n} else {\n  visualType = 'architecture';\n}\n\nconst prompts = {\n  architecture: `Tu es un expert en visualisation tech. Génère du HTML/CSS/JS autonome (sans balises html/head/body) qui crée un diagramme d'architecture animé et professionnel pour ce post LinkedIn.\n\nPost: ${post.substring(0, 500)}\nTechnologies: ${tech}\n\nRègles STRICTES:\n- Fond sombre #0f0a2e avec grille subtile\n- Boîtes de composants animées qui apparaissent une par une (CSS keyframes)\n- Flèches/connexions animées entre composants\n- Couleurs: violet #7F77DD, bleu #38bdf8, vert #10b981\n- Badges tech en bas\n- Largeur fixe 560px hauteur 300px\n- Texte blanc, police Inter ou sans-serif\n- Animations CSS uniquement (pas de librairies)\n- Retourne UNIQUEMENT le HTML/CSS/JS, rien d'autre, pas de markdown`,\n\n  tips: `Tu es un expert en visualisation LinkedIn. Génère du HTML/CSS autonome (sans balises html/head/body) qui crée une carte de conseils animée et professionnelle.\n\nPost: ${post.substring(0, 500)}\nTechnologies: ${tech}\n\nRègles STRICTES:\n- Fond dégradé sombre #0f2818 vers #0a1f12\n- 3-4 conseils extraits du post, numérotés, qui apparaissent avec animation décalée (stagger)\n- Numéros avec fond vert #10b981\n- Icônes simples CSS (checkmarks, arrows)\n- Largeur fixe 560px hauteur 300px\n- Texte blanc, police Inter ou sans-serif\n- Animations CSS keyframes uniquement\n- Retourne UNIQUEMENT le HTML/CSS, rien d'autre, pas de markdown`,\n\n  before_after: `Tu es un expert en visualisation LinkedIn. Génère du HTML/CSS/JS autonome (sans balises html/head/body) qui crée un visuel before/after animé et professionnel.\n\nPost: ${post.substring(0, 500)}\nTechnologies: ${tech}\n\nRègles STRICTES:\n- Fond sombre #0f0a2e\n- Deux colonnes: AVANT (rouge/problème) et APRÈS (vert/solution)\n- Chiffres/métriques extraits du post qui comptent avec animation JS\n- Séparateur central avec flèche animée\n- Largeur fixe 560px hauteur 300px\n- Texte blanc, police Inter ou sans-serif\n- Animations CSS + compteur JS\n- Retourne UNIQUEMENT le HTML/CSS/JS, rien d'autre, pas de markdown`,\n\n  flowchart: `Tu es un expert en visualisation LinkedIn. Génère du HTML/CSS/JS autonome (sans balises html/head/body) qui crée un flowchart de pipeline animé et professionnel.\n\nPost: ${post.substring(0, 500)}\nTechnologies: ${tech}\n\nRègles STRICTES:\n- Fond sombre #0f0a2e avec grille\n- Étapes du pipeline qui s'allument une par une avec délai\n- Flèches CSS entre les étapes\n- Chaque étape: icon + label + tech utilisée\n- Couleurs progressives du violet au bleu au vert\n- Largeur fixe 560px hauteur 300px\n- Animations CSS keyframes avec délais décalés\n- Retourne UNIQUEMENT le HTML/CSS/JS, rien d'autre, pas de markdown`,\n\n  stats: `Tu es un expert en visualisation LinkedIn. Génère du HTML/CSS/JS autonome (sans balises html/head/body) qui crée un dashboard de métriques animé et professionnel.\n\nPost: ${post.substring(0, 500)}\nTechnologies: ${tech}\n\nRègles STRICTES:\n- Fond sombre #0f0a2e\n- 3-4 métriques/stats extraites du post\n- Barres de progression ou chiffres qui s'animent (compteur JS)\n- Icônes CSS simples pour chaque métrique\n- Couleurs: violet, bleu, vert, orange\n- Largeur fixe 560px hauteur 300px\n- Animations CSS + compteur JS\n- Retourne UNIQUEMENT le HTML/CSS/JS, rien d'autre, pas de markdown`\n};\n\nreturn [{ json: { post, tech, type, visualType, prompt: prompts[visualType] } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300],
+      "id": "node-analyze",
+      "name": "Analyze & Build Prompt"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer REMPLACE_PAR_TA_CLE_OPENROUTER"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "HTTP-Referer",
+              "value": "http://localhost:3000"
+            },
+            {
+              "name": "X-Title",
+              "value": "LinkedAI"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({\"model\": \"google/gemini-2.0-flash-exp:free\", \"messages\": [{\"role\": \"user\", \"content\": $json.prompt}], \"max_tokens\": 3000, \"temperature\": 0.7}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300],
+      "id": "node-openrouter",
+      "name": "OpenRouter Gemini"
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst prev = $('Analyze & Build Prompt').first().json;\n\nlet htmlCode = '';\ntry {\n  htmlCode = response.choices[0].message.content;\n  // Nettoyer les balises markdown si présentes\n  htmlCode = htmlCode.replace(/```html/gi, '').replace(/```css/gi, '').replace(/```js/gi, '').replace(/```javascript/gi, '').replace(/```/g, '').trim();\n  // Supprimer les balises html/head/body si l'IA les a ajoutées quand même\n  htmlCode = htmlCode.replace(/<\\/?html[^>]*>/gi, '').replace(/<\\/?head[^>]*>[\\s\\S]*?<\\/head>/gi, '').replace(/<\\/?body[^>]*>/gi, '').trim();\n} catch(e) {\n  htmlCode = '<div style=\"color:white;padding:20px\">Erreur de génération</div>';\n}\n\nreturn [{\n  json: {\n    success: true,\n    visualType: prev.visualType,\n    htmlCode,\n    generatedAt: new Date().toISOString()\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300],
+      "id": "node-extract",
+      "name": "Extract HTML"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1120, 300],
+      "id": "node-respond",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Analyze & Build Prompt", "type": "main", "index": 0 }]]
+    },
+    "Analyze & Build Prompt": {
+      "main": [[{ "node": "OpenRouter Gemini", "type": "main", "index": 0 }]]
+    },
+    "OpenRouter Gemini": {
+      "main": [[{ "node": "Extract HTML", "type": "main", "index": 0 }]]
+    },
+    "Extract HTML": {
+      "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "active": false
+}

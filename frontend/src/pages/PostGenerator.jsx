@@ -136,7 +136,7 @@ export default function PostGenerator() {
               </button>
               <button onClick={() => setActiveTab('visual')}
                 className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${activeTab === 'visual' ? 'bg-brand-600 text-white border-brand-600' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}>
-                ✨ Visuel LinkedIn
+                ✨ Visuel IA
               </button>
             </div>
           )}
