@@ -57,7 +57,7 @@ export default function VisualCardGenerator({ post, tech, type }) {
 <meta charset="UTF-8"/>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { width: 560px; height: 300px; overflow: hidden; font-family: 'Inter', -apple-system, sans-serif; }
+  html, body { width: 100%; height: 100%; overflow: hidden; font-family: 'Inter', -apple-system, sans-serif; }
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 </style>
 </head>
@@ -68,7 +68,7 @@ export default function VisualCardGenerator({ post, tech, type }) {
     <div className="space-y-4">
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="font-semibold text-gray-800 text-sm">Visuel animé LinkedIn</h3>
           {visualType && (
@@ -77,7 +77,7 @@ export default function VisualCardGenerator({ post, tech, type }) {
             </p>
           )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row">
           <button
             className="btn-primary"
             onClick={handleGenerate}
@@ -95,7 +95,7 @@ export default function VisualCardGenerator({ post, tech, type }) {
 
       {/* Preview */}
       {loading && (
-        <div className="flex items-center justify-center border border-dashed border-brand-200 rounded-xl bg-brand-50" style={{ height: 300 }}>
+        <div className="flex h-[220px] items-center justify-center rounded-xl border border-dashed border-brand-200 bg-brand-50 sm:h-[300px]">
           <div className="text-center space-y-2">
             <div className="text-3xl animate-spin">✨</div>
             <p className="text-sm text-brand-600 font-medium">Gemini génère ton visuel...</p>
@@ -109,7 +109,8 @@ export default function VisualCardGenerator({ post, tech, type }) {
           <iframe
             ref={iframeRef}
             srcDoc={fullHtml}
-            style={{ width: '100%', height: 300, border: 'none', display: 'block' }}
+            className="h-[220px] sm:h-[300px]"
+            style={{ width: '100%', border: 'none', display: 'block' }}
             title="Visuel LinkedIn"
             sandbox="allow-scripts"
           />
@@ -117,10 +118,7 @@ export default function VisualCardGenerator({ post, tech, type }) {
       )}
 
       {!loading && !htmlCode && (
-        <div
-          className="flex items-center justify-center border border-dashed border-gray-200 rounded-xl text-gray-300 text-sm"
-          style={{ height: 300 }}
-        >
+        <div className="flex h-[220px] items-center justify-center rounded-xl border border-dashed border-gray-200 px-4 text-center text-sm text-gray-300 sm:h-[300px]">
           <div className="text-center space-y-2">
             <p className="text-4xl">✨</p>
             <p>Clique sur "Générer le visuel" pour créer<br/>un visuel animé unique basé sur ton post</p>
@@ -130,7 +128,7 @@ export default function VisualCardGenerator({ post, tech, type }) {
 
       {/* Types disponibles */}
       {!htmlCode && (
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {[
             { icon: '🏗️', label: 'Architecture', desc: 'Diagramme de composants animé' },
             { icon: '📋', label: 'Conseils', desc: 'Liste numérotée avec stagger' },

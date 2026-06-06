@@ -81,10 +81,10 @@ export default function Scraper() {
   }
 
   return (
-    <div className="max-w-5xl space-y-6">
+    <div className="mx-auto w-full max-w-5xl space-y-6">
       {/* Formulaire */}
       <div className="card space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="font-semibold text-gray-800">Lancer le scraper LinkedIn</h2>
           <span className="badge bg-green-50 text-green-700 border border-green-100 text-xs px-2 py-1 rounded-full">
             ✅ n8n connecté
@@ -123,7 +123,7 @@ export default function Scraper() {
           </div>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
           <button className="btn-primary" onClick={handleLaunch} disabled={loading}>
             {loading ? '⏳ Scraping en cours...' : '🚀 Lancer le scraper'}
           </button>
@@ -146,12 +146,12 @@ export default function Scraper() {
       {/* Résultats */}
       {scrapedProfiles.length > 0 ? (
         <div className="card space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="font-semibold text-gray-800">
               Profils <span className="text-brand-600">({scrapedProfiles.length})</span>
             </h2>
             <input
-              className="input max-w-xs"
+              className="input sm:max-w-xs"
               placeholder="Filtrer..."
               value={filter}
               onChange={(e) => setFilter(e.target.value)}

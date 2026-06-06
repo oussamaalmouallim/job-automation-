@@ -1,7 +1,7 @@
 // Phase 3 — À implémenter
 export default function JobsFinder() {
   return (
-    <div className="max-w-2xl">
+    <div className="mx-auto w-full max-w-2xl">
       <div className="card text-center py-16 text-gray-400">
         <p className="text-4xl mb-3">💼</p>
         <p className="font-medium text-gray-600 mb-1">Recherche d'offres intelligente</p>
