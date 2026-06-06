@@ -20,12 +20,12 @@ export default function Dashboard() {
   ]
 
   return (
-    <div className="max-w-4xl space-y-8">
+    <div className="mx-auto w-full max-w-4xl space-y-6 sm:space-y-8">
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
         {stats.map(({ label, value }) => (
           <div key={label} className="card text-center">
-            <p className="text-3xl font-semibold text-brand-700">{value}</p>
+            <p className="text-2xl font-semibold text-brand-700 sm:text-3xl">{value}</p>
             <p className="text-xs text-gray-400 mt-1">{label}</p>
           </div>
         ))}
@@ -34,7 +34,7 @@ export default function Dashboard() {
       {/* Actions rapides */}
       <div>
         <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">Actions rapides</h2>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {QUICK_ACTIONS.map(({ label, to, color }) => (
             <button
               key={to}

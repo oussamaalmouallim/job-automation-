@@ -78,7 +78,7 @@ export default function PostGenerator() {
   }
 
   return (
-    <div className="max-w-5xl space-y-6">
+    <div className="mx-auto w-full max-w-5xl space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
         {/* ── Formulaire ── */}
@@ -101,7 +101,7 @@ export default function PostGenerator() {
             <input className="input" name="tech" value={form.tech} onChange={handleChange}
               placeholder="n8n, Python, AWS, React..." />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className="label">Ton</label>
               <select className="input" name="tone" value={form.tone} onChange={handleChange}>
@@ -125,7 +125,7 @@ export default function PostGenerator() {
 
           {/* Tabs */}
           {result && (
-            <div className="flex gap-2">
+            <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
               <button onClick={() => setActiveTab('post')}
                 className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${activeTab === 'post' ? 'bg-brand-600 text-white border-brand-600' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}>
                 ✏️ Post
@@ -145,13 +145,13 @@ export default function PostGenerator() {
           {activeTab === 'post' && (
             result ? (
               <>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                   <h2 className="font-semibold text-gray-800">Post généré</h2>
                   <span className="text-xs text-gray-400">{result.length} caractères</span>
                 </div>
                 <textarea className="flex-1 input min-h-56 resize-none text-sm leading-relaxed"
                   value={result} onChange={(e) => setResult(e.target.value)} />
-                <div className="flex gap-2 flex-wrap">
+                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                   <button className="btn-primary" onClick={copyToClipboard}>📋 Copier</button>
                   <button className="btn-secondary" onClick={handleGetResources} disabled={loadingRes}>
                     {loadingRes ? '⏳...' : '🖼️ Trouver ressources'}
@@ -187,10 +187,10 @@ export default function PostGenerator() {
                         {resources.images.map((img, i) => (
                           <div key={i} className="border border-gray-100 rounded-xl overflow-hidden">
                             <img src={img.thumb} alt={img.alt} className="w-full h-32 object-cover" />
-                            <div className="p-2 flex items-center justify-between">
-                              <span className="text-xs text-gray-400">{img.credit}</span>
+                            <div className="flex flex-col gap-2 p-2 sm:flex-row sm:items-center sm:justify-between">
+                              <span className="min-w-0 truncate text-xs text-gray-400">{img.credit}</span>
                               <button onClick={() => downloadImage(img.url, `image-${i+1}.jpg`)}
-                                className="btn-secondary text-xs py-1 px-2">
+                                className="btn-secondary px-2 py-1 text-xs">
                                 📥 Télécharger
                               </button>
                             </div>
@@ -207,9 +207,9 @@ export default function PostGenerator() {
                       <div className="space-y-2">
                         {resources.documents.map((doc, i) => (
                           <a key={i} href={doc.url} target="_blank" rel="noreferrer"
-                            className="flex items-center justify-between p-2.5 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors">
-                            <span className="text-sm text-gray-700">{doc.title}</span>
-                            <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{doc.type}</span>
+                            className="flex items-center justify-between gap-3 rounded-lg border border-gray-100 p-2.5 transition-colors hover:bg-gray-50">
+                            <span className="min-w-0 truncate text-sm text-gray-700">{doc.title}</span>
+                            <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">{doc.type}</span>
                           </a>
                         ))}
                       </div>
@@ -257,7 +257,7 @@ export default function PostGenerator() {
           <h2 className="font-semibold text-gray-800">Historique ({posts.length})</h2>
           <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
             {posts.map((p) => (
-              <div key={p.id} className="flex items-start justify-between gap-3 bg-gray-50 rounded-lg px-3 py-2">
+              <div key={p.id} className="flex flex-col gap-3 bg-gray-50 rounded-lg px-3 py-2 sm:flex-row sm:items-start sm:justify-between">
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-gray-400">{new Date(p.createdAt).toLocaleDateString('fr-FR')} · {p.type} · {p.model}</p>
                   <p className="text-sm text-gray-700 truncate">{p.content}</p>

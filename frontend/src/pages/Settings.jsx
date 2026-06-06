@@ -17,7 +17,7 @@ export default function Settings() {
   }
 
   return (
-    <div className="max-w-xl space-y-6">
+    <div className="mx-auto w-full max-w-xl space-y-6">
       <div className="card space-y-5">
         <h2 className="font-semibold text-gray-800">Connexion n8n</h2>
 
@@ -36,7 +36,7 @@ export default function Settings() {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label className="label">Modèle IA par défaut</label>
             <select className="input" name="defaultModel" value={form.defaultModel} onChange={handleChange}>
