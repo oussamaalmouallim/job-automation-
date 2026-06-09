@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import toast from 'react-hot-toast'
 import useAppStore from '../store/useAppStore'
-import axios from 'axios'
-import { getResources } from '../services/api'
+import { generatePostWithOpenRouter, getResources } from '../services/api'
 import VisualCardGenerator from '../components/layout/VisualCardGenerator'
 
 const TYPES  = ['Projet technique', 'Conseil Cloud/IA', 'Storytelling', 'Recherche d\'emploi']
@@ -30,14 +29,10 @@ export default function PostGenerator() {
     if (!form.description.trim()) { toast.error('Décris ton projet ou ton sujet.'); return }
     setLoading(true)
     try {
-      const res = await axios.post('/n8n/webhook/generate-post', {
+      const text = await generatePostWithOpenRouter({
         type: form.type, description: form.description,
         tech: form.tech, tone: form.tone, model: form.model,
       })
-      console.log('Réponse n8n:', res.data)
-      const text = res.data?.post || res.data?.text || res.data?.content ||
-                   res.data?.choices?.[0]?.message?.content ||
-                   (typeof res.data === 'string' ? res.data : JSON.stringify(res.data))
       setResult(text)
       setResources(null)
       addPost({ type: form.type, model: form.model, content: text })

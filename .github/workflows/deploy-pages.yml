@@ -34,8 +34,15 @@ jobs:
         working-directory: frontend
         run: npm ci
 
+      - name: Check OpenRouter key
+        env:
+          VITE_OPENROUTER_API_KEY: ${{ secrets.VITE_OPENROUTER_API_KEY }}
+        run: test -n "$VITE_OPENROUTER_API_KEY"
+
       - name: Build
         working-directory: frontend
+        env:
+          VITE_OPENROUTER_API_KEY: ${{ secrets.VITE_OPENROUTER_API_KEY }}
         run: npm run build
 
       - name: Upload artifact

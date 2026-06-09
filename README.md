@@ -2,7 +2,7 @@
 
 Plateforme SaaS d'automatisation IA pour generer des posts LinkedIn, scraper des profils, rechercher des offres et adapter des lettres de motivation.
 
-**Stack**: React, Vite, Tailwind, Node.js, Express, n8n, Prisma, SQLite.
+**Stack**: React, Vite, Tailwind, OpenRouter, Node.js, Express, n8n, Prisma, SQLite.
 
 ---
 
@@ -98,28 +98,54 @@ npm run db:logs
 
 ```text
 Frontend
-  -> /api/posts/generate
-  -> Backend Express
-  -> n8n webhook
-  -> Prisma GeneratedPostLog
+  -> OpenRouter Chat Completions API
   -> reponse au frontend
 ```
 
-Le frontend ne doit plus appeler n8n directement pour la generation de posts, sinon les logs Prisma ne seront pas enregistres.
+Le frontend n'appelle plus le webhook n8n pour la generation de posts LinkedIn.
 
 ## Variables d'environnement
 
-Backend:
+Frontend:
+
+```env
+VITE_OPENROUTER_API_KEY="REMPLACE_PAR_TA_VRAIE_CLE"
+```
+
+Backend local:
 
 ```env
 DATABASE_URL="file:./dev.db"
-N8N_POST_WEBHOOK="http://localhost:5678/webhook/generate-post"
 ```
 
-Le backend lit aussi le `.env` a la racine du projet, utile si l'URL existe deja sous:
+## Deploiement GitHub Pages
 
-```env
-VITE_N8N_POST_WEBHOOK="http://localhost:5678/webhook/generate-post"
+Le projet est configure pour GitHub Pages avec Vite:
+
+```text
+base: /job-automation-/
+```
+
+Le workflow `.github/workflows/deploy-pages.yml` build `frontend` et publie `frontend/dist`.
+
+Avant de deployer, ajouter ce secret dans GitHub:
+
+```text
+Repository Settings -> Secrets and variables -> Actions -> New repository secret
+Name: VITE_OPENROUTER_API_KEY
+Value: ta cle OpenRouter
+```
+
+Puis activer GitHub Pages:
+
+```text
+Repository Settings -> Pages -> Source: GitHub Actions
+```
+
+Ensuite, pousser sur `main`. L'app sera publiee sur:
+
+```text
+https://oussamaalmouallim.github.io/job-automation-/
 ```
 
 ## Phases
