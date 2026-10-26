@@ -1,12 +1,15 @@
-// Phase 2 — À implémenter
+/** cloneme: P-04 — Lettre de motivation : page d'attente (Phase 2). */
+import { FileText } from 'lucide-react'
+import PageAttente from '../components/ui/PageAttente'
+
 export default function MotivationLetter() {
   return (
-    <div className="mx-auto w-full max-w-2xl">
-      <div className="card text-center py-16 text-gray-400">
-        <p className="text-4xl mb-3">📄</p>
-        <p className="font-medium text-gray-600 mb-1">Adaptation de lettre de motivation</p>
-        <p className="text-sm">Disponible en Phase 2 — Upload PDF/DOCX + offre d'emploi → lettre adaptée par IA</p>
-      </div>
-    </div>
+    <PageAttente
+      icone={FileText}
+      phase="Phase 2"
+      titre="Adaptation de lettre de motivation"
+      description="Upload PDF/DOCX + offre d'emploi → lettre adaptée par IA."
+      prevu={['Import de ta lettre en PDF ou DOCX', "Collage de l'offre d'emploi", 'Lettre adaptée par IA, puis export PDF ou DOCX']}
+    />
   )
 }

@@ -2,7 +2,7 @@
 
 Plateforme SaaS d'automatisation IA pour generer des posts LinkedIn, scraper des profils, rechercher des offres et adapter des lettres de motivation.
 
-**Stack**: React, Vite, Tailwind, OpenRouter, Node.js, Express, n8n, Prisma, SQLite.
+**Stack**: React, Vite, Tailwind, framer-motion, lucide-react, OpenRouter, Node.js, Express, n8n, Prisma, SQLite.
 
 ---
 
@@ -16,6 +16,41 @@ saas-linkedin-ai/
 ├── n8n-workflows/     Exports JSON des workflows n8n
 └── docs/              Documentation technique
 ```
+
+## Interface
+
+L'interface reprend la direction artistique de la maquette Nexora (Dribbble), adaptée à LinkedAI avec la méthode CloneMe (`.claude/skills/cloneme/`).
+
+Trois fichiers pilotent l'apparence, à la racine de `frontend/` :
+
+| Fichier | Rôle | Code piloté |
+|---|---|---|
+| `design.md` | pages, composants (`P-xx`, `C-xx`), responsive | `src/pages/`, `src/components/` |
+| `palette.md` | couleurs, ombres, rayons, typographie | `src/styles/tokens.css` (valeur pour valeur) |
+| `animation.md` | animations (`A-xx`), mode réduit | `src/lib/animations.js`, composants marqués |
+
+Règle : aucune couleur ni durée en dur dans un composant. On passe par un token de `tokens.css`, exposé dans `tailwind.config.js`.
+
+Vérifier que les fichiers et le code sont synchronisés :
+
+```bash
+node .claude/skills/cloneme/scripts/verifier-synchro.mjs frontend
+```
+
+Organisation de `frontend/src/` :
+
+```text
+components/ui/          briques réutilisables : Card, Button, Field, Badge, Tabs, EmptyState, Page…
+components/layout/      cadre, sidebar, barre du haut, recherche globale, notifications
+components/dashboard/   blocs du dashboard
+components/charts/      donut et histogramme (SVG + framer-motion)
+components/lightswind/  composants Lightswind (MIT) portés en JSX : CountUp, TopLoader
+lib/                    navigation, profil, stats, export CSV, réglages d'animation
+store/                  useAppStore (données persistées), useActiviteStore (appels en cours)
+styles/                 tokens.css, animations.css
+```
+
+Rapport de la refonte : `frontend/RAPPORT-CLONAGE.md`.
 
 ## Lancement
 

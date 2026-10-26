@@ -1,52 +1,55 @@
-import { NavLink } from 'react-router-dom'
-import clsx from 'clsx'
-
-const NAV = [
-  { to: '/dashboard', label: 'Dashboard',      icon: '⬜' },
-  { to: '/posts',     label: 'Générateur posts', icon: '✏️' },
-  { to: '/scraper',   label: 'Scraper LinkedIn', icon: '🔍' },
-  { to: '/lettre',    label: 'Lettre de motiv.', icon: '📄' },
-  { to: '/offres',    label: 'Offres d\'emploi', icon: '💼' },
-  { to: '/settings',  label: 'Paramètres',       icon: '⚙️' },
-]
+/** cloneme: C-02, A-06 — Sidebar : logo, navigation, carte profil. Barre basse sous 768 px. */
+import { NavLink, Link } from 'react-router-dom'
+import { motion } from 'framer-motion'
+import { ChevronRight } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { NAVIGATION } from '@/lib/navigation'
+import { PROFIL } from '@/lib/profil'
+import { DUREES, COURBES } from '@/lib/animations'
 
 export default function Sidebar() {
   return (
-    <aside className="fixed inset-x-0 bottom-0 z-40 flex h-16 border-t border-gray-100 bg-white/95 px-2 py-1 shadow-[0_-8px_24px_rgba(15,23,42,0.06)] backdrop-blur md:static md:h-auto md:w-56 md:shrink-0 md:flex-col md:border-r md:border-t-0 md:bg-white md:px-3 md:py-5 md:shadow-none">
-      {/* Logo */}
-      <div className="mb-8 hidden px-3 md:block">
-        <span className="text-lg font-semibold text-brand-800 tracking-tight">LinkedAI</span>
-        <p className="text-xs text-gray-400 mt-0.5">Automatisation IA</p>
-      </div>
+    <aside className="fixed inset-x-0 bottom-0 z-40 flex h-nav-mobile border-t border-ligne bg-surface px-2 md:static md:h-auto md:w-sidebar md:shrink-0 md:flex-col md:border-t-0 md:bg-app md:px-4 md:py-6">
+      <Link to="/dashboard" className="mb-9 hidden px-3 text-[22px] font-bold tracking-tight text-texte md:block">
+        LinkedAI<span className="text-accent">.</span>
+      </Link>
 
-      {/* Nav */}
-      <nav className="grid w-full grid-cols-6 gap-1 md:block md:flex-1 md:space-y-1">
-        {NAV.map(({ to, label, icon }) => (
-          <NavLink
-            key={to}
-            to={to}
-            className={({ isActive }) =>
-              clsx(
-                'flex min-w-0 flex-col items-center justify-center gap-1 rounded-lg px-1 py-1.5 text-[10px] leading-tight transition-colors md:flex-row md:justify-start md:gap-3 md:px-3 md:py-2 md:text-sm',
-                isActive
-                  ? 'bg-brand-50 text-brand-800 font-medium'
-                  : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
-              )
-            }
-          >
-            <span className="text-base leading-none">{icon}</span>
-            <span className="w-full truncate text-center md:text-left">{label}</span>
+      <nav aria-label="Navigation principale" className="grid w-full grid-cols-6 gap-1 md:flex md:flex-1 md:flex-col md:gap-1">
+        {NAVIGATION.map(({ to, label, court, icone: Icone }) => (
+          <NavLink key={to} to={to} className="nav-item flex-col justify-center gap-1 px-1 py-2 md:flex-row md:justify-start md:gap-3 md:px-3 md:py-2.5">
+            {({ isActive }) => (
+              <>
+                {isActive && (
+                  <motion.span
+                    layoutId="nav-actif"
+                    className="absolute inset-0 rounded-controle bg-surface-douce"
+                    transition={{ duration: DUREES.standard, ease: COURBES.standard }}
+                  />
+                )}
+                <Icone size={18} strokeWidth={isActive ? 2.2 : 1.8} className={cn('relative', isActive && 'text-texte')} />
+                <span className={cn('relative w-full truncate text-center text-[10px] md:text-left md:text-sm', isActive && 'font-medium text-texte')}>
+                  <span className="md:hidden">{court}</span>
+                  <span className="hidden md:inline">{label}</span>
+                </span>
+              </>
+            )}
           </NavLink>
         ))}
       </nav>
 
-      {/* Footer */}
-      <div className="hidden px-3 pt-4 border-t border-gray-100 md:block">
-        <p className="text-xs text-gray-400 leading-relaxed">
-          Oussama AL MOUALLIM<br />
-          <span className="text-brand-600">Plan Gratuit</span> · 3/5 générations
-        </p>
-      </div>
+      <Link
+        to="/settings"
+        className="mt-4 hidden items-center gap-3 rounded-carte border border-ligne bg-surface p-3 transition-colors duration-rapide hover:bg-surface-douce md:flex"
+      >
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-pilule bg-sable text-xs font-semibold text-texte">
+          {PROFIL.initiales}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-medium text-texte">{PROFIL.nomComplet}</span>
+          <span className="block truncate text-xs text-texte-pale">{PROFIL.role}</span>
+        </span>
+        <ChevronRight size={16} className="shrink-0 text-texte-pale" />
+      </Link>
     </aside>
   )
 }

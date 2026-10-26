@@ -1,3 +1,6 @@
+@import './styles/tokens.css';
+@import './styles/animations.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -7,30 +10,67 @@
     box-sizing: border-box;
   }
   body {
-    @apply bg-gray-50 text-gray-900 font-sans antialiased;
+    @apply bg-app font-sans text-sm text-texte antialiased;
   }
-  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::selection {
+    @apply bg-sable;
+  }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { @apply bg-gray-300 rounded-full; }
+  ::-webkit-scrollbar-thumb { @apply rounded-pilule bg-brume; }
 }
 
 @layer components {
-  .btn-primary {
-    @apply bg-brand-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed;
+  /* C-07 — boutons (cloneme: A-01 pour les transitions) */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-controle px-4 py-2.5 text-sm font-medium
+      transition duration-rapide ease-standard active:scale-[0.98]
+      focus-visible:outline-none focus-visible:shadow-focus
+      disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100;
   }
-  .btn-secondary {
-    @apply bg-white text-gray-700 border border-gray-200 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors;
+  .btn-primaire {
+    @apply btn bg-primaire text-sur-primaire hover:bg-primaire-survol;
   }
-  .card {
-    @apply bg-white border border-gray-100 rounded-xl p-4 shadow-sm sm:p-5;
+  .btn-secondaire {
+    @apply btn border border-ligne bg-surface text-texte hover:bg-surface-douce;
   }
-  .input {
-    @apply w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent;
+  .btn-fantome {
+    @apply btn text-texte-doux hover:bg-surface-douce hover:text-texte;
   }
-  .label {
-    @apply block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5;
+  .btn-petit {
+    @apply px-3 py-1.5 text-xs;
   }
-  .badge {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  .btn-icone {
+    @apply btn h-10 w-10 p-0;
+  }
+
+  /* C-06 — carte */
+  .carte {
+    @apply rounded-carte border border-ligne bg-surface p-5 shadow-carte;
+  }
+
+  /* C-08 — champs */
+  .champ {
+    @apply w-full rounded-controle border border-ligne bg-surface px-3.5 py-2.5 text-sm text-texte
+      placeholder:text-texte-pale transition duration-rapide ease-standard
+      focus:border-accent focus:outline-none focus:shadow-focus;
+  }
+  .libelle {
+    @apply mb-1.5 block text-xs font-medium text-texte-doux;
+  }
+
+  .surtitre {
+    @apply text-[11px] font-medium uppercase tracking-surtitre text-texte-doux;
+  }
+
+  /* C-02 — item de nav (cloneme: A-01) */
+  .nav-item {
+    @apply relative flex items-center gap-3 rounded-controle px-3 py-2.5 text-sm text-texte-doux
+      transition-colors duration-rapide ease-standard hover:text-texte;
+  }
+
+  /* C-17 — ligne de liste cliquable */
+  .ligne-liste {
+    @apply flex items-center gap-3 rounded-controle px-2 py-2.5 transition-colors duration-rapide ease-standard hover:bg-surface-douce;
   }
 }

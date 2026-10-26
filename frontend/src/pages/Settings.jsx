@@ -1,6 +1,13 @@
+/** cloneme: P-06 — Paramètres : connexion n8n, modèle et ton par défaut, à propos. Logique inchangée. */
 import { useState } from 'react'
 import toast from 'react-hot-toast'
+import { Save } from 'lucide-react'
 import useAppStore from '../store/useAppStore'
+import Page from '../components/ui/Page'
+import { Card, CardHeader } from '../components/ui/Card'
+import { Field, Input, Select } from '../components/ui/Field'
+import Button from '../components/ui/Button'
+import { PROFIL } from '../lib/profil'
 
 export default function Settings() {
   const { settings, updateSettings } = useAppStore()
@@ -17,58 +24,52 @@ export default function Settings() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-xl space-y-6">
-      <div className="card space-y-5">
-        <h2 className="font-semibold text-gray-800">Connexion n8n</h2>
+    <Page largeur="moyen" surtitre="Compte" titre="Paramètres" description="Connexion à n8n et préférences de génération, gardées dans ce navigateur.">
+      <Card className="space-y-5">
+        <CardHeader titre="Connexion n8n" marge={false} />
 
-        <div>
-          <label className="label">URL de base n8n</label>
-          <input className="input" name="n8nBaseUrl" value={form.n8nBaseUrl}
+        <Field label="URL de base n8n" htmlFor="n8nBaseUrl">
+          <Input id="n8nBaseUrl" name="n8nBaseUrl" value={form.n8nBaseUrl}
             onChange={handleChange} placeholder="https://ton-instance.app.n8n.cloud" />
-        </div>
+        </Field>
 
-        <div>
-          <label className="label">Webhook scraper LinkedIn</label>
-          <input className="input" name="scraperWebhook" value={form.scraperWebhook}
+        <Field label="Webhook scraper LinkedIn" htmlFor="scraperWebhook"
+          aide="URL du webhook de ton scraper n8n existant (chatTrigger ou Webhook HTTP)">
+          <Input id="scraperWebhook" name="scraperWebhook" value={form.scraperWebhook}
             onChange={handleChange} placeholder="https://ton-instance.../webhook/scraper" />
-          <p className="text-xs text-gray-400 mt-1">
-            URL du webhook de ton scraper n8n existant (chatTrigger ou Webhook HTTP)
-          </p>
-        </div>
+        </Field>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label className="label">Modèle IA par défaut</label>
-            <select className="input" name="defaultModel" value={form.defaultModel} onChange={handleChange}>
+          <Field label="Modèle IA par défaut" htmlFor="defaultModel">
+            <Select id="defaultModel" name="defaultModel" value={form.defaultModel} onChange={handleChange}>
               <option value="deepseek">DeepSeek</option>
               <option value="gemini">Gemini</option>
               <option value="llama">Llama</option>
               <option value="claude">Claude</option>
-            </select>
-          </div>
-          <div>
-            <label className="label">Ton par défaut</label>
-            <select className="input" name="defaultTone" value={form.defaultTone} onChange={handleChange}>
+            </Select>
+          </Field>
+          <Field label="Ton par défaut" htmlFor="defaultTone">
+            <Select id="defaultTone" name="defaultTone" value={form.defaultTone} onChange={handleChange}>
               <option value="professional">Professionnel</option>
               <option value="human">Humain</option>
               <option value="startup">Startup</option>
               <option value="viral">Viral</option>
-            </select>
-          </div>
+            </Select>
+          </Field>
         </div>
 
-        <button className="btn-primary" onClick={handleSave}>Sauvegarder</button>
-      </div>
+        <Button icone={Save} onClick={handleSave}>Sauvegarder</Button>
+      </Card>
 
-      <div className="card space-y-3">
-        <h2 className="font-semibold text-gray-800">À propos</h2>
-        <div className="text-sm text-gray-500 space-y-1">
-          <p><strong>Projet :</strong> LinkedAI — AI Job Automation SaaS</p>
-          <p><strong>Auteur :</strong> Oussama AL MOUALLIM EL KANOUNI</p>
-          <p><strong>Version :</strong> 0.1.0 — Phase 1 MVP</p>
-          <p><strong>Stack :</strong> React · n8n · OpenRouter · Supabase</p>
-        </div>
-      </div>
-    </div>
+      <Card>
+        <CardHeader titre="À propos" />
+        <dl className="grid grid-cols-[110px_1fr] gap-x-4 gap-y-2.5 text-sm">
+          <dt className="text-texte-pale">Projet</dt><dd className="text-texte">LinkedAI — AI Job Automation SaaS</dd>
+          <dt className="text-texte-pale">Auteur</dt><dd className="text-texte">{PROFIL.nomAuteur}</dd>
+          <dt className="text-texte-pale">Version</dt><dd className="text-texte">0.1.0 — Phase 1 MVP</dd>
+          <dt className="text-texte-pale">Stack</dt><dd className="text-texte">React · n8n · OpenRouter · Prisma</dd>
+        </dl>
+      </Card>
+    </Page>
   )
 }

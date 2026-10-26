@@ -1,0 +1,12 @@
+/* cloneme: A-01 — survols et appuis (transitions des classes .btn-*, .nav-item, .ligne-liste dans index.css) */
+
+/* Mode animations réduites : transitions et animations CSS coupées. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

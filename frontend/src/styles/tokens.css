@@ -1,0 +1,75 @@
+/* Tokens de l'interface — miroir exact de palette.md et animation.md.
+   Changer une valeur ici sans changer le .md casse verifier-synchro.mjs. */
+
+:root {
+  /* Couleurs — fonds */
+  --couleur-app: #F8F7F3;
+  --couleur-surface: #FDFBF9;
+  --couleur-surface-douce: #F1F0EC;
+  --couleur-surface-creuse: #F3F1ED;
+  --couleur-ligne: #ECE9E3;
+
+  /* Couleurs — texte */
+  --couleur-texte: #141414;
+  --couleur-texte-doux: #6E6C67;
+  --couleur-texte-pale: #A3A09A;
+
+  /* Couleurs — actions et accents */
+  --couleur-primaire: #141A13;
+  --couleur-primaire-survol: #2A3128;
+  --couleur-sur-primaire: #FFFFFF;
+  --couleur-accent: #1E4737;
+  --couleur-accent-pale: #E5F7E8;
+  --couleur-succes: #0E542C;
+
+  /* Couleurs — graphiques */
+  --couleur-olive: #6E7652;
+  --couleur-peche: #FAAD8A;
+  --couleur-sable: #E5DCCF;
+  --couleur-brume: #DBDCD5;
+  --couleur-lavande: #C7B3D3;
+
+  /* Couleurs — états */
+  --couleur-alerte: #FD1214;
+  --couleur-danger: #B42318;
+  --couleur-danger-pale: #FDECEA;
+  --couleur-attention: #9A6A12;
+  --couleur-attention-pale: #FBF3E2;
+
+  /* Voiles et dégradés */
+  --voile-blanc: rgba(255, 255, 255, 0.72);
+  --voile-sombre: rgba(20, 26, 19, 0.35);
+  --degrade-hero: radial-gradient(120% 95% at 72% 18%, #FFFFFF 0%, #F1ECE5 42%, #E4DACE 100%);
+  --degrade-carte: linear-gradient(135deg, #FBFAF7 0%, #EEE8E0 55%, #DCD2C5 100%);
+  --degrade-puce: linear-gradient(135deg, #E9DFC9 0%, #CDBF9F 100%);
+
+  /* Ombres */
+  --ombre-carte: 0 1px 2px rgba(20, 26, 19, 0.04);
+  --ombre-survol: 0 10px 24px -12px rgba(20, 26, 19, 0.18);
+  --ombre-flottante: 0 28px 50px -18px rgba(60, 45, 30, 0.35);
+  --ombre-menu: 0 18px 40px -16px rgba(20, 26, 19, 0.22);
+  --anneau-focus: 0 0 0 3px rgba(30, 71, 55, 0.18);
+
+  /* Typographie */
+  --police-texte: "Inter", system-ui, -apple-system, sans-serif;
+  --police-mono: "JetBrains Mono", ui-monospace, monospace;
+  --taille-hero: 3rem;
+  --taille-kpi: 2.25rem;
+  --lettres-surtitre: 0.18em;
+
+  /* Rayons */
+  --rayon-carte: 18px;
+  --rayon-controle: 12px;
+  --rayon-pilule: 999px;
+
+  /* Dimensions */
+  --largeur-sidebar: 232px;
+  --hauteur-topbar: 72px;
+  --hauteur-nav-mobile: 64px;
+
+  /* Animations */
+  --duree-rapide: 150ms;
+  --duree-standard: 250ms;
+  --duree-lente: 600ms;
+  --courbe-standard: cubic-bezier(0.22, 1, 0.36, 1);
+}

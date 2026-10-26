@@ -1,0 +1,14 @@
+{
+  "source": "https://dribbble.com/shots/27778607-Nexora-Modern-Digital-Banking-Dashboard",
+  "nature": "image fixe 2048x1536, pas de site",
+  "releve_le": "2026-10-26",
+  "pages": [
+    { "id": "P-01", "route": "/dashboard", "type": "dashboard", "statut": "refait sur la maquette" },
+    { "id": "P-02", "route": "/posts", "type": "outil", "statut": "refait, logique gardee" },
+    { "id": "P-03", "route": "/scraper", "type": "outil", "statut": "refait, logique gardee" },
+    { "id": "P-04", "route": "/lettre", "type": "attente", "statut": "page d'attente (Phase 2)" },
+    { "id": "P-05", "route": "/offres", "type": "attente", "statut": "page d'attente (Phase 3)" },
+    { "id": "P-06", "route": "/settings", "type": "formulaire", "statut": "refait, logique gardee" },
+    { "id": "P-99", "route": "*", "type": "404", "statut": "nouveau" }
+  ]
+}

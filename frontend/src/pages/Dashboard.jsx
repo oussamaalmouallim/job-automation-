@@ -1,99 +1,180 @@
+/** cloneme: P-01 — Dashboard : direction Nexora, données réelles du store uniquement. */
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import useAppStore from '../store/useAppStore'
+import { motion } from 'framer-motion'
+import { PenLine, ScanSearch, FileText, BriefcaseBusiness, Download, Settings, Linkedin, BarChart3, UsersRound } from 'lucide-react'
+import toast from 'react-hot-toast'
+import useAppStore from '@/store/useAppStore'
+import Page from '@/components/ui/Page'
+import { Card, CardHeader } from '@/components/ui/Card'
+import EmptyState from '@/components/ui/EmptyState'
+import Tabs from '@/components/ui/Tabs'
+import ListeActivite from '@/components/ui/ListeActivite'
+import Button from '@/components/ui/Button'
+import Accueil from '@/components/dashboard/Accueil'
+import CarteVisuelle from '@/components/dashboard/CarteVisuelle'
+import CarteChiffre from '@/components/dashboard/CarteChiffre'
+import ActionsRapides from '@/components/dashboard/ActionsRapides'
+import ListeActions from '@/components/dashboard/ListeActions'
+import Donut from '@/components/charts/Donut'
+import Histogramme from '@/components/charts/Histogramme'
+import { entreeCarte } from '@/lib/animations'
+import { postsParJour, comparaisonSemaine, repartitionParType, dateRelative } from '@/lib/stats'
+import { titrePost } from '@/lib/posts'
+import { exporterProfilsCsv } from '@/lib/exportCsv'
 
-const QUICK_ACTIONS = [
-  { label: 'Générer un post LinkedIn', to: '/posts',   color: 'bg-brand-50 text-brand-800 border-brand-100' },
-  { label: 'Lancer le scraper',         to: '/scraper', color: 'bg-green-50 text-green-800 border-green-100' },
-  { label: 'Adapter une lettre',         to: '/lettre',  color: 'bg-amber-50 text-amber-800 border-amber-100' },
-  { label: 'Chercher des offres',        to: '/offres',  color: 'bg-blue-50 text-blue-800 border-blue-100' },
+const ACTIONS_RAPIDES = [
+  { label: 'Générer un post', to: '/posts',   icone: PenLine },
+  { label: 'Lancer le scraper', to: '/scraper', icone: ScanSearch },
+  { label: 'Adapter une lettre', to: '/lettre',  icone: FileText },
+  { label: 'Chercher des offres', to: '/offres',  icone: BriefcaseBusiness },
+]
+
+const PERIODES = [
+  { id: 'mois', label: '30 jours' },
+  { id: 'tout', label: 'Tout' },
 ]
 
 export default function Dashboard() {
   const navigate = useNavigate()
   const { posts, scrapedProfiles, letters, savedJobs } = useAppStore()
+  const [periode, setPeriode] = useState('tout')
 
-  const stats = [
-    { label: 'Posts générés',   value: posts.length },
-    { label: 'Profils scrapés', value: scrapedProfiles.length },
-    { label: 'Lettres créées',  value: letters.length },
-    { label: 'Offres sauvées',  value: savedJobs.length },
+  const semaine = useMemo(() => comparaisonSemaine(posts), [posts])
+  const parJour = useMemo(() => postsParJour(posts, 7), [posts])
+  const repartition = useMemo(() => repartitionParType(posts, periode), [posts, periode])
+
+  const actions = [
+    {
+      label: 'Exporter les profils (CSV)',
+      aide: scrapedProfiles.length ? `${scrapedProfiles.length} profils` : 'Aucun profil pour l\'instant',
+      icone: Download,
+      desactive: scrapedProfiles.length === 0,
+      onClick: () => { exporterProfilsCsv(scrapedProfiles); toast.success('Export CSV lancé') },
+    },
+    { label: 'Configurer n8n', aide: 'Webhook du scraper, modèle par défaut', icone: Settings, onClick: () => navigate('/settings') },
+    { label: 'Ouvrir LinkedIn', aide: 'Publier ton dernier post', icone: Linkedin, onClick: () => window.open('https://www.linkedin.com/feed/', '_blank', 'noopener,noreferrer') },
   ]
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-6 sm:space-y-8">
-      {/* Stats */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
-        {stats.map(({ label, value }) => (
-          <div key={label} className="card text-center">
-            <p className="text-2xl font-semibold text-brand-700 sm:text-3xl">{value}</p>
-            <p className="text-xs text-gray-400 mt-1">{label}</p>
-          </div>
-        ))}
-      </div>
+    <Page>
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+        {/* ── Zone principale ── */}
+        <div className="min-w-0 space-y-5">
+          {/* Accueil + carte chiffre clé, posés sur le fond dégradé (A-02, A-03) */}
+          <motion.div variants={entreeCarte} className="relative overflow-hidden rounded-carte bg-hero p-5 sm:p-7">
+            <div className="absolute inset-y-0 right-0 hidden w-[48%] md:block">
+              <CarteVisuelle />
+            </div>
+            <div className="relative space-y-6">
+              <Accueil />
+              <CarteChiffre
+                libelle="Posts générés"
+                valeur={posts.length}
+                cetteSemaine={semaine.cetteSemaine}
+                ecart={semaine.ecart}
+                lien="/posts"
+                secondaires={[
+                  { libelle: 'Profils scrapés', valeur: scrapedProfiles.length },
+                  { libelle: 'Lettres créées', valeur: letters.length },
+                  { libelle: 'Offres sauvées', valeur: savedJobs.length },
+                ]}
+              />
+            </div>
+          </motion.div>
 
-      {/* Actions rapides */}
-      <div>
-        <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">Actions rapides</h2>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {QUICK_ACTIONS.map(({ label, to, color }) => (
-            <button
-              key={to}
-              onClick={() => navigate(to)}
-              className={`card border text-left text-sm font-medium hover:shadow-md transition-shadow cursor-pointer ${color}`}
-            >
-              {label} →
-            </button>
-          ))}
+          <ActionsRapides actions={ACTIONS_RAPIDES} />
+
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+            <Card>
+              <CardHeader titre="Derniers posts" lien="/posts" />
+              {posts.length > 0 ? (
+                <ListeActivite
+                  elements={posts.slice(0, 4).map((p) => ({
+                    cle: p.id,
+                    icone: <PenLine size={16} />,
+                    titre: titrePost(p.content),
+                    meta: dateRelative(p.createdAt),
+                    valeur: p.type,
+                    sousValeur: p.model,
+                    onClick: () => navigate('/posts', { state: { postId: p.id } }),
+                  }))}
+                />
+              ) : (
+                <EmptyState
+                  icone={PenLine}
+                  titre="Aucun post généré"
+                  texte="Tes posts apparaîtront ici, avec leur date et leur modèle."
+                  action={<Button petit onClick={() => navigate('/posts')}>Générer un post</Button>}
+                />
+              )}
+            </Card>
+
+            <Card>
+              <CardHeader
+                titre="Répartition par type"
+                action={<Tabs onglets={PERIODES} actif={periode} onChange={setPeriode} />}
+              />
+              {repartition.total > 0 ? (
+                <Donut segments={repartition.segments} total={repartition.total} libelleTotal="posts" />
+              ) : (
+                <EmptyState
+                  icone={BarChart3}
+                  titre={periode === 'mois' ? 'Aucun post sur 30 jours' : 'Pas encore de données'}
+                  texte="La répartition se calcule à partir de tes posts générés."
+                />
+              )}
+            </Card>
+          </div>
+        </div>
+
+        {/* ── Colonne de droite ── */}
+        <div className="grid min-w-0 grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-1 xl:content-start">
+          <Card>
+            <CardHeader titre="Activité" sousTitre="Posts générés sur 7 jours" lien="/posts" />
+            <div className="mb-4 flex items-start gap-3 rounded-controle bg-surface-douce p-3">
+              <BarChart3 size={18} className="mt-0.5 shrink-0 text-texte-doux" />
+              <p className="text-xs leading-relaxed text-texte-doux">
+                {semaine.cetteSemaine === 0 && semaine.semainePrecedente === 0
+                  ? 'Aucun post sur les deux dernières semaines.'
+                  : `${semaine.cetteSemaine} post${semaine.cetteSemaine > 1 ? 's' : ''} cette semaine, ${
+                    semaine.ecart === 0 ? 'autant que' : `${Math.abs(semaine.ecart)} de ${semaine.ecart > 0 ? 'plus' : 'moins'} que`
+                  } la semaine d'avant.`}
+              </p>
+            </div>
+            <Histogramme donnees={parJour} />
+          </Card>
+
+          <Card>
+            <CardHeader titre="Derniers profils" lien="/scraper" />
+            {scrapedProfiles.length > 0 ? (
+              <ListeActivite
+                elements={scrapedProfiles.slice(0, 4).map((p, i) => ({
+                  cle: `${p.link || p.name}-${i}`,
+                  icone: p.image
+                    ? <img src={p.image} alt="" className="h-full w-full object-cover" />
+                    : <span className="text-xs font-semibold">{(p.name || '?').charAt(0)}</span>,
+                  titre: p.name || 'Profil sans nom',
+                  meta: p.title || '—',
+                  href: p.link,
+                }))}
+              />
+            ) : (
+              <EmptyState
+                icone={UsersRound}
+                titre="Aucun profil scrapé"
+                texte="Lance le scraper pour récupérer des profils LinkedIn."
+                action={<Button petit variante="secondaire" onClick={() => navigate('/scraper')}>Ouvrir le scraper</Button>}
+              />
+            )}
+          </Card>
+
+          <Card className="md:col-span-2 xl:col-span-1">
+            <CardHeader titre="Actions rapides" />
+            <ListeActions actions={actions} />
+          </Card>
         </div>
       </div>
-
-      {/* Derniers posts */}
-      {posts.length > 0 && (
-        <div>
-          <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">Derniers posts générés</h2>
-          <div className="space-y-3">
-            {posts.slice(0, 3).map((post) => (
-              <div key={post.id} className="card">
-                <p className="text-xs text-gray-400 mb-1">{new Date(post.createdAt).toLocaleDateString('fr-FR')} · {post.type}</p>
-                <p className="text-sm text-gray-700 line-clamp-2">{post.content}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Profils scrapés récents */}
-      {scrapedProfiles.length > 0 && (
-        <div>
-          <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">Derniers profils scrapés</h2>
-          <div className="overflow-x-auto rounded-xl border border-gray-100">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
-                <tr>
-                  <th className="px-4 py-2 text-left">Nom</th>
-                  <th className="px-4 py-2 text-left">Titre</th>
-                  <th className="px-4 py-2 text-left">Lien</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {scrapedProfiles.slice(0, 5).map((p, i) => (
-                  <tr key={i} className="bg-white">
-                    <td className="px-4 py-2 font-medium text-gray-800">{p.name || '—'}</td>
-                    <td className="px-4 py-2 text-gray-500">{p.title || '—'}</td>
-                    <td className="px-4 py-2">
-                      {p.link && (
-                        <a href={p.link} target="_blank" rel="noreferrer" className="text-brand-600 hover:underline text-xs">
-                          Voir profil →
-                        </a>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-    </div>
+    </Page>
   )
 }

@@ -1,16 +1,24 @@
+/** cloneme: C-01 — Cadre de l'application : sidebar, barre du haut, contenu qui défile. */
 import { Outlet } from 'react-router-dom'
 import Sidebar from './Sidebar'
-import Header from './Header'
+import Topbar from './Topbar'
+import TopLoader from '@/components/lightswind/TopLoader'
+import useActiviteStore from '@/store/useActiviteStore'
 
 export default function Layout() {
+  const enCours = useActiviteStore((s) => s.enCours)
+
   return (
-    <div className="flex min-h-screen bg-gray-50 md:h-screen md:overflow-hidden">
-      <Sidebar />
-      <div className="flex min-w-0 flex-1 flex-col md:overflow-hidden">
-        <Header />
-        <main className="flex-1 overflow-y-auto px-4 py-4 pb-24 sm:px-5 md:p-6">
-          <Outlet />
-        </main>
+    <div className="min-h-screen bg-app md:h-screen md:overflow-hidden">
+      <TopLoader isLoading={enCours > 0} />
+      <div className="flex min-h-screen md:h-full md:min-h-0">
+        <Sidebar />
+        <div className="flex min-w-0 flex-1 flex-col md:overflow-hidden">
+          <Topbar />
+          <main className="flex-1 px-4 pb-[calc(var(--hauteur-nav-mobile)+24px)] pt-1 sm:px-6 md:overflow-y-auto md:pb-8">
+            <Outlet />
+          </main>
+        </div>
       </div>
     </div>
   )

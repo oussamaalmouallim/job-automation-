@@ -1,12 +1,15 @@
-// Phase 3 — À implémenter
+/** cloneme: P-05 — Offres d'emploi : page d'attente (Phase 3). */
+import { BriefcaseBusiness } from 'lucide-react'
+import PageAttente from '../components/ui/PageAttente'
+
 export default function JobsFinder() {
   return (
-    <div className="mx-auto w-full max-w-2xl">
-      <div className="card text-center py-16 text-gray-400">
-        <p className="text-4xl mb-3">💼</p>
-        <p className="font-medium text-gray-600 mb-1">Recherche d'offres intelligente</p>
-        <p className="text-sm">Disponible en Phase 3 — LinkedIn, Indeed, RemoteOK centralisés avec filtres IA</p>
-      </div>
-    </div>
+    <PageAttente
+      icone={BriefcaseBusiness}
+      phase="Phase 3"
+      titre="Recherche d'offres intelligente"
+      description="LinkedIn, Indeed, RemoteOK centralisés avec filtres IA."
+      prevu={['Recherche multi-sources', 'Filtres : métier, localisation, remote, stack', 'Offres sauvegardées en favoris']}
+    />
   )
 }

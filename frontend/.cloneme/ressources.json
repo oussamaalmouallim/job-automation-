@@ -1,0 +1,7 @@
+{
+  "telechargees": [],
+  "references": [
+    { "quoi": "maquette Nexora (consultee, non copiee dans le projet)", "source": "https://cdn.dribbble.com/userupload/49199452/file/03c1a432c814391ae536e5905cfe176d.jpg", "droits": "Hira Riaz / Upnow Studio - usage d'inspiration uniquement" },
+    { "quoi": "composants CountUp et TopLoader", "source": "npx lightswind@3.2.5 add count-up top-loader", "droits": "MIT (paquet npm lightswind)" }
+  ]
+}
