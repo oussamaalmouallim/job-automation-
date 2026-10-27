@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { PenLine, Copy, Image as ImageIcon, Sparkles, RefreshCw, ExternalLink, Download, Lightbulb, History } from 'lucide-react'
+import { PenLine, Copy, BookOpen, Sparkles, RefreshCw, ExternalLink, Lightbulb, History } from 'lucide-react'
 import useAppStore from '../store/useAppStore'
 import { avecActivite } from '../store/useActiviteStore'
 import { generatePost, getResources } from '../services/api'
@@ -90,15 +90,9 @@ export default function PostGenerator() {
     toast.success('Copié !')
   }
 
-  const downloadImage = async (url, filename) => {
-    const a = document.createElement('a')
-    a.href = url; a.download = filename || 'image.jpg'
-    a.target = '_blank'; a.click()
-  }
-
   const onglets = [
     { id: 'post', label: 'Post', icone: PenLine },
-    { id: 'resources', label: `Ressources${resources ? ` (${resources.images?.length || 0})` : ''}`, icone: ImageIcon },
+    { id: 'resources', label: `Ressources${resources ? ` (${resources.documents?.length || 0})` : ''}`, icone: BookOpen },
     { id: 'visual', label: 'Visuel IA', icone: Sparkles },
   ]
 
@@ -159,7 +153,7 @@ export default function PostGenerator() {
                   value={result} onChange={(e) => setResult(e.target.value)} />
                 <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                   <Button icone={Copy} onClick={copyToClipboard}>Copier</Button>
-                  <Button variante="secondaire" icone={ImageIcon} chargement={loadingRes} onClick={handleGetResources}>
+                  <Button variante="secondaire" icone={BookOpen} chargement={loadingRes} onClick={handleGetResources}>
                     {loadingRes ? 'Recherche…' : 'Trouver des ressources'}
                   </Button>
                   <a href="https://www.linkedin.com/feed/" target="_blank" rel="noreferrer" className="btn-secondaire">
@@ -184,31 +178,6 @@ export default function PostGenerator() {
             <div className="flex-1 space-y-5 overflow-y-auto">
               {resources ? (
                 <>
-                  {resources.suggestedVisualType && (
-                    <div className="flex items-center gap-2 rounded-controle bg-accent-pale px-3 py-2 text-xs text-succes">
-                      <Lightbulb size={14} /> Visuel suggéré : <strong>{resources.suggestedVisualType}</strong>
-                    </div>
-                  )}
-
-                  {resources.images?.length > 0 && (
-                    <div>
-                      <p className="libelle">Images suggérées</p>
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        {resources.images.map((img, i) => (
-                          <div key={i} className="overflow-hidden rounded-controle border border-ligne">
-                            <img src={img.thumb} alt={img.alt} className="h-32 w-full object-cover" />
-                            <div className="flex items-center justify-between gap-2 p-2">
-                              <span className="min-w-0 truncate text-xs text-texte-pale">{img.credit}</span>
-                              <Button petit variante="secondaire" icone={Download} onClick={() => downloadImage(img.url, `image-${i+1}.jpg`)}>
-                                Télécharger
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
                   {resources.documents?.length > 0 && (
                     <div>
                       <p className="libelle">Documentation utile</p>
@@ -239,7 +208,7 @@ export default function PostGenerator() {
                 </>
               ) : (
                 <EmptyState
-                  icone={ImageIcon}
+                  icone={BookOpen}
                   titre="Pas encore de ressources"
                   texte="Clique sur « Trouver des ressources » après avoir généré un post."
                   action={<Button petit variante="secondaire" chargement={loadingRes} onClick={handleGetResources}>Trouver des ressources</Button>}

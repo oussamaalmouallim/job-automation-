@@ -2,7 +2,8 @@
   "name": "linkedai",
   "private": true,
   "scripts": {
-    "dev": "bash scripts/dev.sh"
+    "dev": "bash scripts/dev.sh",
+    "n8n:reload": "bash scripts/n8n-reload.sh"
   },
   "dependencies": {
     "html2canvas": "^1.4.1"

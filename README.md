@@ -58,7 +58,8 @@ Rapport de la refonte : `frontend/RAPPORT-CLONAGE.md`.
 Navigateur (front React)
   -> Backend Express :4000          seul point d'entree public
        -> OpenRouter                 generation des posts (cle OPENROUTER_API_KEY sur le serveur)
-       -> n8n :5678 /webhook/...     ressources, visuel IA, scraper (3 webhooks autorises)
+       -> n8n :5678 /webhook/...     ressources (docs + conseils), visuel IA, scraper (3 webhooks autorises)
+                                     le scraper interroge Google Custom Search (GOOGLE_API_KEY, GOOGLE_CX)
        -> SQLite (Prisma)            logs des posts generes
 ```
 
@@ -86,9 +87,9 @@ cp n8n-workflows/n8n.env.example ~/n8n.env   # puis renseigner les cles dedans
 docker run -d --name n8n --restart unless-stopped -p 5678:5678 --env-file ~/n8n.env -v ~/n8n-data:/home/node/.n8n n8nio/n8n
 ```
 
-Importer et activer les 3 workflows (menu Import from file dans n8n) : `linkedin-resource-suggestions-v4.json`, `linkedin-visual-generator.json`, `linkedin-scraper-webhook.json`.
+Importer et activer les 3 workflows (menu Import from file dans n8n) : `linkedin-resource-suggestions.json`, `linkedin-visual-generator.json`, `linkedin-scraper-webhook.json`.
 
-Attention : `docker restart n8n` ne relit pas `~/n8n.env`. Apres un changement de cle, supprimer et recreer le conteneur (les donnees restent dans `~/n8n-data`).
+Attention : `docker restart n8n` ne relit pas `~/n8n.env`. Apres un changement de cle, lancer `npm run n8n:reload` : le conteneur est recree, les donnees restent dans `~/n8n-data`.
 
 ## Prisma
 
