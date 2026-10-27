@@ -1,3 +1,8 @@
+/**
+ * Point d'entrée du backend LinkedAI (Express, port 4000).
+ * Seul service exposé au navigateur : il garde la clé OpenRouter, enregistre les posts (Prisma/SQLite)
+ * et relaie les webhooks n8n autorisés. Voir README, section Architecture.
+ */
 import express  from 'express'
 import cors     from 'cors'
 import morgan   from 'morgan'
@@ -10,7 +15,6 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 dotenv.config({ path: resolve(__dirname, '../.env') })
 dotenv.config({ path: resolve(__dirname, '../../.env') })
 
-import scraperRoutes from './routes/scraper.js'
 import postRoutes    from './routes/posts.js'
 import n8nRoutes     from './routes/n8n.js'
 import { limiter }   from './lib/rateLimit.js'
@@ -34,7 +38,6 @@ const limiteIa = limiter({ windowMs: 60_000, max: 20 })
 app.use('/api/posts/generate', limiteIa)
 app.use('/api/n8n',            limiteIa)
 
-app.use('/api/scraper', scraperRoutes)
 app.use('/api/posts',   postRoutes)
 app.use('/api/n8n',     n8nRoutes)
 

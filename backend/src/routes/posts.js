@@ -1,3 +1,4 @@
+/** Génération des posts LinkedIn par OpenRouter (deepseek) et historique des posts générés. */
 import { Router } from 'express'
 import axios from 'axios'
 import { prisma } from '../lib/prisma.js'

@@ -1,3 +1,4 @@
+/** Calculs du dashboard à partir des posts du store : activité par jour, comparaison de semaines, répartition par type. */
 import { TYPES_POST, COULEURS_TYPES, COULEUR_AUTRE } from './posts'
 
 const JOUR_MS = 24 * 60 * 60 * 1000

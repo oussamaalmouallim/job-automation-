@@ -1,12 +1,8 @@
+/**
+ * Tous les appels réseau du front, tous vers le backend (jamais vers OpenRouter ni n8n en direct).
+ * Exception : la page Scraper peut viser un autre webhook si l'utilisateur le règle (voir Scraper.jsx).
+ */
 import axios from 'axios'
-
-// Scraper LinkedIn
-export const triggerScraper = async ({ query, location = 'maroc', maxPages = 2 }) => {
-  const res = await axios.post(`${API_BASE}/n8n/scraper`, { query, location, maxPages })
-  return res.data
-}
-
-export const getScraperResults = async () => []
 
 // Adresse du backend. En local : le proxy Vite ('/api'). En démo : VITE_API_URL, l'adresse publique du backend.
 export const API_BASE = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '')
@@ -31,17 +27,5 @@ export const getResources = async ({ post, tech, type }) => {
 // Generateur de visuels IA
 export const generateVisual = async ({ post, tech, type }) => {
   const res = await axios.post(`${API_BASE}/n8n/generate-visual`, { post, tech, type })
-  return res.data
-}
-
-// Lettre de motivation
-export const adaptLetter = async ({ letterText, jobOffer, template, model }) => {
-  const res = await axios.post(`${API_BASE}/n8n/adapt-letter`, { letterText, jobOffer, template, model })
-  return res.data
-}
-
-// Recherche offres
-export const searchJobs = async ({ query, location, remote, stack }) => {
-  const res = await axios.post(`${API_BASE}/n8n/search-jobs`, { query, location, remote, stack })
   return res.data
 }

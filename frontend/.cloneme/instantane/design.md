@@ -151,7 +151,7 @@ Tous dans `src/services/api.js`, tous via le backend (`API_BASE` = `/api` en loc
 | `getResources` | P-02 | backend `POST /api/n8n/resource-suggestions` → n8n |
 | `generateVisual` | C-21 | backend `POST /api/n8n/generate-visual` → n8n |
 | appel direct axios | P-03 | webhook scraper : paramètres, `VITE_N8N_SCRAPER_WEBHOOK`, sinon backend `POST /api/n8n/scraper` |
-| `adaptLetter`, `searchJobs` | aucune page encore | Phase 2 et 3 (non autorisés côté backend tant qu'ils n'existent pas) |
+| — | P-04, P-05 | à créer en Phase 2 et 3 (lettre, offres) : nouvelle fonction ici + webhook autorisé côté backend |
 
 ## 10. Correspondance maquette → app
 

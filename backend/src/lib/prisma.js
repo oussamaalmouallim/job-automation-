@@ -1,3 +1,4 @@
+/** Client Prisma partagé. Gardé sur globalThis en dev pour ne pas ouvrir une connexion à chaque rechargement. */
 import { PrismaClient } from '@prisma/client'
 
 process.env.DATABASE_URL ||= 'file:./dev.db'

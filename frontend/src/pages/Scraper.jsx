@@ -1,4 +1,4 @@
-/** cloneme: P-03 — Scraper LinkedIn. Logique inchangée (webhook n8n, lecture souple de la réponse, filtre, export CSV). */
+/** cloneme: P-03 — Scraper LinkedIn : lancement via le backend (webhook n8n), lecture souple de la réponse, filtre, export CSV. */
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'

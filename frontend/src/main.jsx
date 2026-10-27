@@ -1,3 +1,4 @@
+/** Démarrage du front : routeur (base = chemin de déploiement), animations, notifications. */
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'

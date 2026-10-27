@@ -1,3 +1,4 @@
+/** Routes de l'application, toutes dans le cadre commun (Layout). */
 import { Routes, Route, Navigate } from 'react-router-dom'
 import Layout from './components/layout/Layout'
 import Dashboard from './pages/Dashboard'

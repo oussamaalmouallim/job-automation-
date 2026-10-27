@@ -1,4 +1,4 @@
-/** cloneme: P-06 — Paramètres : connexion n8n, modèle et ton par défaut, à propos. Logique inchangée. */
+/** cloneme: P-06 — Paramètres : ton par défaut des posts, webhook du scraper, à propos. Gardés dans ce navigateur. */
 import { useState } from 'react'
 import toast from 'react-hot-toast'
 import { Save } from 'lucide-react'
@@ -8,10 +8,14 @@ import { Card, CardHeader } from '../components/ui/Card'
 import { Field, Input, Select } from '../components/ui/Field'
 import Button from '../components/ui/Button'
 import { PROFIL } from '../lib/profil'
+import { TONS_POST, MODELE_POST, TON_PAR_DEFAUT } from '../lib/posts'
 
 export default function Settings() {
   const { settings, updateSettings } = useAppStore()
-  const [form, setForm] = useState({ ...settings })
+  const [form, setForm] = useState({
+    ...settings,
+    defaultTone: TONS_POST.includes(settings.defaultTone) ? settings.defaultTone : TON_PAR_DEFAUT,
+  })
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -24,36 +28,26 @@ export default function Settings() {
   }
 
   return (
-    <Page largeur="moyen" surtitre="Compte" titre="Paramètres" description="Connexion à n8n et préférences de génération, gardées dans ce navigateur.">
+    <Page largeur="moyen" surtitre="Compte" titre="Paramètres" description="Préférences de génération et du scraper, gardées dans ce navigateur.">
       <Card className="space-y-5">
-        <CardHeader titre="Connexion n8n" marge={false} />
+        <CardHeader titre="Génération des posts" marge={false} />
 
-        <Field label="URL de base n8n" htmlFor="n8nBaseUrl">
-          <Input id="n8nBaseUrl" name="n8nBaseUrl" value={form.n8nBaseUrl}
-            onChange={handleChange} placeholder="https://ton-instance.app.n8n.cloud" />
-        </Field>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="Ton par défaut" htmlFor="defaultTone" aide="Pré-choisi à l'ouverture du générateur">
+            <Select id="defaultTone" name="defaultTone" value={form.defaultTone} onChange={handleChange}>
+              {TONS_POST.map((t) => <option key={t}>{t}</option>)}
+            </Select>
+          </Field>
+          <Field label="Modèle IA" aide="Choisi par le backend">
+            <p className="champ bg-surface-douce text-texte-doux">{MODELE_POST.libelle}</p>
+          </Field>
+        </div>
 
-        <Field label="Webhook scraper LinkedIn" htmlFor="scraperWebhook"
-          aide="URL du webhook de ton scraper n8n existant (chatTrigger ou Webhook HTTP)">
+        <Field label="Webhook du scraper (optionnel)" htmlFor="scraperWebhook"
+          aide="Laisse vide pour passer par le backend. À remplir seulement pour viser un autre n8n.">
           <Input id="scraperWebhook" name="scraperWebhook" value={form.scraperWebhook}
             onChange={handleChange} placeholder="https://ton-instance.../webhook/scraper" />
         </Field>
-
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Modèle IA par défaut" htmlFor="defaultModel">
-            <Select id="defaultModel" name="defaultModel" value={form.defaultModel} onChange={handleChange}>
-              <option value="deepseek">DeepSeek</option>
-            </Select>
-          </Field>
-          <Field label="Ton par défaut" htmlFor="defaultTone">
-            <Select id="defaultTone" name="defaultTone" value={form.defaultTone} onChange={handleChange}>
-              <option value="professional">Professionnel</option>
-              <option value="human">Humain</option>
-              <option value="startup">Startup</option>
-              <option value="viral">Viral</option>
-            </Select>
-          </Field>
-        </div>
 
         <Button icone={Save} onClick={handleSave}>Sauvegarder</Button>
       </Card>
@@ -64,7 +58,7 @@ export default function Settings() {
           <dt className="text-texte-pale">Projet</dt><dd className="text-texte">LinkedAI — AI Job Automation SaaS</dd>
           <dt className="text-texte-pale">Auteur</dt><dd className="text-texte">{PROFIL.nomAuteur}</dd>
           <dt className="text-texte-pale">Version</dt><dd className="text-texte">0.1.0 — Phase 1 MVP</dd>
-          <dt className="text-texte-pale">Stack</dt><dd className="text-texte">React · n8n · OpenRouter · Prisma</dd>
+          <dt className="text-texte-pale">Stack</dt><dd className="text-texte">React · Express · n8n · DeepSeek (OpenRouter) · Prisma</dd>
         </dl>
       </Card>
     </Page>

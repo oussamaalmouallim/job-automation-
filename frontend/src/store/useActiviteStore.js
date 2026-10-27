@@ -1,3 +1,4 @@
+/** État des appels en cours, pour la barre de progression globale. Non persisté. */
 import { create } from 'zustand'
 
 // Compte les appels IA / n8n en cours, pour la barre de progression globale (A-05). Non persisté.

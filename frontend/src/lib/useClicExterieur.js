@@ -1,3 +1,4 @@
+/** Hook des menus déroulants : fermeture au clic extérieur et à Échap. */
 import { useEffect } from 'react'
 
 // Ferme un menu au clic hors de `ref` ou à la touche Échap.

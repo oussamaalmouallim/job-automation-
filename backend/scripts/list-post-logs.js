@@ -1,3 +1,4 @@
+/** Affiche les 20 derniers posts générés dans le terminal. Lancer : npm run db:logs */
 import { prisma } from '../src/lib/prisma.js'
 
 const logs = await prisma.generatedPostLog.findMany({

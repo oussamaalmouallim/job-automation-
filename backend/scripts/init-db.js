@@ -1,3 +1,7 @@
+/**
+ * Crée la table GeneratedPostLog et ses index dans SQLite s'ils n'existent pas.
+ * Équivalent de la migration Prisma, sans dépendre de `prisma migrate`. Lancer : npm run db:init
+ */
 import { PrismaClient } from '@prisma/client'
 
 process.env.DATABASE_URL ||= 'file:./dev.db'

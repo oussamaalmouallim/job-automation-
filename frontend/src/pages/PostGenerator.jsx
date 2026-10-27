@@ -15,17 +15,21 @@ import Badge from '../components/ui/Badge'
 import Tabs from '../components/ui/Tabs'
 import EmptyState from '../components/ui/EmptyState'
 import ListeActivite from '../components/ui/ListeActivite'
-import { TYPES_POST, TONS_POST, MODELES_POST, titrePost } from '../lib/posts'
+import { TYPES_POST, TONS_POST, MODELE_POST, TON_PAR_DEFAUT, titrePost } from '../lib/posts'
 import { dateRelative } from '../lib/stats'
 
 export default function PostGenerator() {
-  const { posts, addPost } = useAppStore()
+  const { posts, addPost, settings } = useAppStore()
   const location = useLocation()
   const navigate = useNavigate()
 
-  const [form, setForm] = useState({
-    type: 'Projet technique', description: '', tech: '', tone: 'Professionnel', model: 'deepseek',
-  })
+  // Le ton de départ vient des paramètres (une ancienne valeur inconnue retombe sur le ton par défaut).
+  const [form, setForm] = useState(() => ({
+    type: TYPES_POST[0],
+    description: '',
+    tech: '',
+    tone: TONS_POST.includes(settings.defaultTone) ? settings.defaultTone : TON_PAR_DEFAUT,
+  }))
   const [result,    setResult]    = useState('')
   const [resources, setResources] = useState(null)
   const [loading,   setLoading]   = useState(false)
@@ -55,11 +59,11 @@ export default function PostGenerator() {
     try {
       const text = await avecActivite(generatePost({
         type: form.type, description: form.description,
-        tech: form.tech, tone: form.tone, model: form.model,
+        tech: form.tech, tone: form.tone,
       }))
       setResult(text)
       setResources(null)
-      addPost({ type: form.type, model: form.model, content: text })
+      addPost({ type: form.type, model: MODELE_POST.id, content: text })
       toast.success('Post généré !')
       setActiveTab('post')
     } catch (err) {
@@ -100,7 +104,7 @@ export default function PostGenerator() {
     <Page
       surtitre="Contenu"
       titre="Générateur de posts"
-      description="Décris ton sujet, choisis un ton et un modèle : l'IA rédige un post LinkedIn prêt à publier."
+      description="Décris ton sujet et choisis un ton : l'IA rédige un post LinkedIn prêt à publier."
     >
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
 
@@ -127,10 +131,8 @@ export default function PostGenerator() {
                 {TONS_POST.map((t) => <option key={t}>{t}</option>)}
               </Select>
             </Field>
-            <Field label="Modèle IA" htmlFor="model">
-              <Select id="model" name="model" value={form.model} onChange={handleChange}>
-                {MODELES_POST.map((m) => <option key={m}>{m}</option>)}
-              </Select>
+            <Field label="Modèle IA">
+              <p className="champ bg-surface-douce text-texte-doux">{MODELE_POST.libelle}</p>
             </Field>
           </div>
           <Button className="w-full" icone={PenLine} chargement={loading} onClick={handleGenerate}>

@@ -1,3 +1,7 @@
+/**
+ * Données de l'utilisateur, gardées dans le navigateur (localStorage, clé « linkedai-storage »).
+ * Posts, profils scrapés, lettres, offres sauvegardées et paramètres.
+ */
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
@@ -41,10 +45,8 @@ const useAppStore = create(
 
       // ─── Settings ─────────────────────────────────────
       settings: {
-        defaultModel: 'deepseek',
-        defaultTone: 'professional',
-        n8nBaseUrl: '',
-        scraperWebhook: '',
+        defaultTone: 'Professionnel', // une valeur de TONS_POST (lib/posts.js)
+        scraperWebhook: '',           // vide : le scraper passe par le backend
       },
       updateSettings: (partial) =>
         set((state) => ({ settings: { ...state.settings, ...partial } })),

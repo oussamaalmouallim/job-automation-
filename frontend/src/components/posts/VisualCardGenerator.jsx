@@ -1,4 +1,9 @@
-/** cloneme: C-21 — Générateur de visuel IA : appel n8n, aperçu dans un iframe isolé, export PNG. Logique inchangée. */
+/**
+ * cloneme: C-21 — Générateur de visuel IA.
+ * Le HTML produit par n8n (deepseek) est affiché dans un iframe isolé (sandbox sans allow-same-origin) :
+ * il ne peut ni lire la page ni la modifier. L'export PNG se fait donc DANS l'iframe, qui renvoie l'image
+ * par postMessage (voir SCRIPT_EXPORT).
+ */
 import { useState, useRef } from 'react'
 import toast from 'react-hot-toast'
 import { Sparkles, Download, Boxes, ListOrdered, ArrowLeftRight, Workflow } from 'lucide-react'
@@ -13,6 +18,31 @@ const TYPES_VISUELS = [
   { icone: Workflow, label: 'Flowchart', desc: 'Pipeline qui s\'allume étape par étape' },
 ]
 
+// Script ajouté au visuel : à la demande du parent, charge html-to-image et renvoie le PNG.
+// html-to-image dessine la page via SVG, sans ouvrir d'iframe : il marche dans un iframe isolé,
+// là où html2canvas est bloqué. Chargé seulement au moment de l'export.
+const SCRIPT_EXPORT = `<script>
+window.addEventListener('message', function (e) {
+  if (!e.data || e.data.type !== 'linkedai-export-png') return;
+  var envoyer = function (msg) { parent.postMessage(msg, '*'); };
+  var lancer = function () {
+    // Premier vrai élément du visuel (le HTML généré commence souvent par une balise <style>).
+    var cible = Array.prototype.find.call(document.body.children, function (el) {
+      return !/^(STYLE|SCRIPT|LINK)$/.test(el.tagName);
+    }) || document.body;
+    htmlToImage.toPng(cible, { pixelRatio: 2 })
+      .then(function (dataUrl) { envoyer({ type: 'linkedai-png', dataUrl: dataUrl }); })
+      .catch(function (err) { envoyer({ type: 'linkedai-png', error: String(err && err.message || err) }); });
+  };
+  if (window.htmlToImage) return lancer();
+  var s = document.createElement('script');
+  s.src = 'https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js';
+  s.onload = lancer;
+  s.onerror = function () { envoyer({ type: 'linkedai-png', error: 'html-to-image indisponible' }); };
+  document.head.appendChild(s);
+});
+</script>`
+
 export default function VisualCardGenerator({ post, tech, type }) {
   const [loading, setLoading] = useState(false)
   const [htmlCode, setHtmlCode] = useState('')
@@ -24,7 +54,6 @@ export default function VisualCardGenerator({ post, tech, type }) {
     setLoading(true)
     try {
       const data = await avecActivite(generateVisual({ post, tech, type }))
-      console.log('Visual data:', data)
       const code = data?.htmlCode || data?.html || ''
       if (!code) { toast.error('Aucun visuel généré'); return }
       setHtmlCode(code)
@@ -37,29 +66,33 @@ export default function VisualCardGenerator({ post, tech, type }) {
     }
   }
 
-  const handleDownload = async () => {
-    if (!iframeRef.current) return
-    toast.loading('Export en cours...')
-    try {
-      const { default: html2canvas } = await import('html2canvas')
-      const iframeDoc = iframeRef.current.contentDocument
-      const canvas = await html2canvas(iframeDoc.body, {
-        scale: 2,
-        backgroundColor: '#0f0a2e', // cloneme-ok : fond du visuel généré par n8n, pas de l'interface
-        useCORS: true,
-        width: 560,
-        height: 300,
-      })
-      const link = document.createElement('a')
-      link.download = `linkedin-visual-${Date.now()}.png`
-      link.href = canvas.toDataURL('image/png')
-      link.click()
-      toast.dismiss()
-      toast.success('PNG téléchargé !')
-    } catch (err) {
-      toast.dismiss()
-      toast.error('Erreur export: ' + err.message)
+  // Demande l'image à l'iframe et attend sa réponse (20 s au plus).
+  const handleDownload = () => {
+    const cible = iframeRef.current?.contentWindow
+    if (!cible) return
+    const toastId = toast.loading('Export en cours…')
+
+    const terminer = (erreur) => {
+      window.removeEventListener('message', surMessage)
+      clearTimeout(minuterie)
+      toast.dismiss(toastId)
+      if (erreur) toast.error(`Erreur export : ${erreur}`)
     }
+
+    const surMessage = (e) => {
+      if (e.source !== cible || e.data?.type !== 'linkedai-png') return
+      if (e.data.error) return terminer(e.data.error)
+      const lien = document.createElement('a')
+      lien.download = `linkedin-visual-${Date.now()}.png`
+      lien.href = e.data.dataUrl
+      lien.click()
+      terminer()
+      toast.success('PNG téléchargé !')
+    }
+
+    const minuterie = setTimeout(() => terminer('pas de réponse du visuel'), 20000)
+    window.addEventListener('message', surMessage)
+    cible.postMessage({ type: 'linkedai-export-png' }, '*')
   }
 
   // Document isolé du visuel généré : ses styles appartiennent au visuel, pas à l'interface.
@@ -67,13 +100,13 @@ export default function VisualCardGenerator({ post, tech, type }) {
 <html>
 <head>
 <meta charset="UTF-8"/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"/>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { width: 100%; height: 100%; overflow: hidden; font-family: 'Inter', -apple-system, sans-serif; } /* cloneme-ok */
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 </style>
 </head>
-<body>${htmlCode}</body>
+<body>${htmlCode}${SCRIPT_EXPORT}</body>
 </html>`
 
   return (

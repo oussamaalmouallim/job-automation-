@@ -1,3 +1,4 @@
+/** Relais vers n8n : le navigateur n'appelle jamais n8n directement, seulement ces webhooks via le backend. */
 import { Router } from 'express'
 import axios from 'axios'
 
