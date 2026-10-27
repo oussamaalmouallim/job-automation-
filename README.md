@@ -1,212 +1,161 @@
-# AI Job Automation & LinkedIn Assistant SaaS
+# LinkedAI — Assistant IA pour LinkedIn et la recherche d'emploi
 
-Plateforme SaaS d'automatisation IA pour generer des posts LinkedIn, scraper des profils, rechercher des offres et adapter des lettres de motivation.
+LinkedAI aide un ingénieur à soigner sa présence LinkedIn et sa recherche d'emploi :
 
-**Stack**: React, Vite, Tailwind, framer-motion, lucide-react, OpenRouter, Node.js, Express, n8n, Prisma, SQLite.
+- **Générateur de posts** : un post LinkedIn rédigé par l'IA à partir d'une description, d'un type et d'un ton.
+- **Ressources** : liens de documentation et conseils de publication adaptés au post.
+- **Visuel IA** : un visuel animé en HTML, exportable en PNG.
+- **Scraper LinkedIn** : des profils publics trouvés par mots-clés et localisation, filtrables et exportables en CSV.
+- **Dashboard** : activité, répartition des posts, derniers profils, actions rapides.
+
+Lettre de motivation et recherche d'offres sont prévues dans les prochaines phases (voir [Feuille de route](#feuille-de-route)).
+
+**Stack** : React 18, Vite 5, Tailwind 3, framer-motion · Node.js, Express, Prisma, SQLite · n8n (Docker) · DeepSeek via OpenRouter · Google Custom Search.
 
 ---
-
-## Structure
-
-```text
-saas-linkedin-ai/
-├── frontend/          React + Vite + Tailwind
-├── backend/           Node.js + Express + Prisma
-├── backend/prisma/    Schema Prisma + migrations SQLite
-├── n8n-workflows/     Exports JSON des workflows n8n
-└── docs/              Documentation technique
-```
-
-## Interface
-
-L'interface reprend la direction artistique de la maquette Nexora (Dribbble), adaptée à LinkedAI avec la méthode CloneMe (`.claude/skills/cloneme/`).
-
-Trois fichiers pilotent l'apparence, à la racine de `frontend/` :
-
-| Fichier | Rôle | Code piloté |
-|---|---|---|
-| `design.md` | pages, composants (`P-xx`, `C-xx`), responsive | `src/pages/`, `src/components/` |
-| `palette.md` | couleurs, ombres, rayons, typographie | `src/styles/tokens.css` (valeur pour valeur) |
-| `animation.md` | animations (`A-xx`), mode réduit | `src/lib/animations.js`, composants marqués |
-
-Règle : aucune couleur ni durée en dur dans un composant. On passe par un token de `tokens.css`, exposé dans `tailwind.config.js`.
-
-Vérifier que les fichiers et le code sont synchronisés :
-
-```bash
-node .claude/skills/cloneme/scripts/verifier-synchro.mjs frontend
-```
-
-Organisation de `frontend/src/` :
-
-```text
-components/ui/          briques réutilisables : Card, Button, Field, Badge, Tabs, EmptyState, Page…
-components/layout/      cadre, sidebar, barre du haut, recherche globale, notifications
-components/dashboard/   blocs du dashboard
-components/charts/      donut et histogramme (SVG + framer-motion)
-components/lightswind/  composants Lightswind (MIT) portés en JSX : CountUp, TopLoader
-lib/                    navigation, profil, stats, export CSV, réglages d'animation
-store/                  useAppStore (données persistées), useActiviteStore (appels en cours)
-styles/                 tokens.css, animations.css
-```
-
-Rapport de la refonte : `frontend/RAPPORT-CLONAGE.md`.
 
 ## Architecture
 
 ```text
 Navigateur (front React)
-  -> Backend Express :4000          seul point d'entree public
-       -> OpenRouter                 generation des posts (cle OPENROUTER_API_KEY sur le serveur)
-       -> n8n :5678 /webhook/...     ressources (docs + conseils), visuel IA, scraper (3 webhooks autorises)
-                                     le scraper interroge Google Custom Search (GOOGLE_API_KEY, GOOGLE_CX)
-       -> SQLite (Prisma)            logs des posts generes
+  └─▶ Backend Express :4000            seul service exposé
+        ├─▶ OpenRouter (deepseek)       génération des posts — clé OPENROUTER_API_KEY côté serveur
+        ├─▶ n8n :5678                    3 webhooks autorisés
+        │     ├─ resource-suggestions    docs + conseils (aucun appel externe)
+        │     ├─ generate-visual         visuel HTML (deepseek)
+        │     └─ scraper                 profils LinkedIn (Google Custom Search)
+        └─▶ SQLite (Prisma)              historique des posts générés
 ```
 
-Le front ne contient plus aucune cle. Il n'appelle que le backend (`/api`).
+- Le front ne contient **aucune clé**. Il n'appelle que le backend (`/api`).
+- n8n reste privé : seul le backend lui parle.
+- Les données de l'utilisateur (posts, profils, paramètres) sont aussi gardées dans le navigateur.
 
-## Lancement en une commande
+Détails : [docs/architecture.md](docs/architecture.md).
 
-Prerequis : Docker lance, le conteneur `n8n` cree (section suivante), et `backend/.env` rempli.
+## Démarrage rapide
+
+Prérequis : Node.js 20+, Docker Desktop.
 
 ```bash
-cp backend/.env.example backend/.env   # une seule fois, puis renseigner OPENROUTER_API_KEY
-npm install --prefix backend && npm install --prefix frontend   # une seule fois
-npm run db:init --prefix backend                                 # une seule fois
+# 1. Une seule fois : dépendances, base, clés
+npm install --prefix backend
+npm install --prefix frontend
+npm run db:init --prefix backend
+cp backend/.env.example backend/.env           # puis renseigner OPENROUTER_API_KEY
+cp n8n-workflows/n8n.env.example ~/n8n.env     # puis renseigner GOOGLE_API_KEY, GOOGLE_CX, OPENROUTER_API_KEY
+
+# 2. Une seule fois : n8n dans Docker, puis importer les 3 workflows (voir docs/n8n.md)
+npm run n8n:reload
+
+# 3. À chaque fois : tout lancer
 npm run dev
 ```
 
-`npm run dev` (a la racine) demarre n8n, le backend (http://localhost:4000) et le front (http://localhost:3000). Ctrl+C arrete le backend et le front ; n8n reste actif (`docker stop n8n` pour l'arreter).
+`npm run dev` démarre n8n, le backend (http://localhost:4000) et le front (http://localhost:3000/job-automation-/). Ctrl+C arrête le backend et le front ; n8n reste actif dans Docker.
 
-## n8n
-
-Creer le conteneur une fois, avec ses donnees gardees et ses cles lues dans un fichier hors du repo :
-
-```bash
-cp n8n-workflows/n8n.env.example ~/n8n.env   # puis renseigner les cles dedans
-docker run -d --name n8n --restart unless-stopped -p 5678:5678 --env-file ~/n8n.env -v ~/n8n-data:/home/node/.n8n n8nio/n8n
-```
-
-Importer et activer les 3 workflows (menu Import from file dans n8n) : `linkedin-resource-suggestions.json`, `linkedin-visual-generator.json`, `linkedin-scraper-webhook.json`.
-
-Attention : `docker restart n8n` ne relit pas `~/n8n.env`. Apres un changement de cle, lancer `npm run n8n:reload` : le conteneur est recree, les donnees restent dans `~/n8n-data`.
-
-## Prisma
-
-Le projet utilise Prisma avec SQLite pour stocker les logs des posts generes.
-
-Table principale:
+## Structure du projet
 
 ```text
-GeneratedPostLog
+.
+├── backend/               API Express : génération des posts, relais n8n, base SQLite
+│   ├── src/index.js       point d'entrée, CORS, limite d'appels
+│   ├── src/routes/        posts.js (OpenRouter + historique), n8n.js (relais)
+│   ├── src/lib/           prisma.js, rateLimit.js
+│   ├── prisma/            schéma et migration SQLite
+│   └── scripts/           init-db.js, list-post-logs.js
+├── frontend/              application React
+│   ├── src/pages/         Dashboard, Posts, Scraper, Lettre, Offres, Paramètres, 404
+│   ├── src/components/    ui, layout, dashboard, charts, posts, scraper, lightswind
+│   ├── src/services/      api.js : tous les appels au backend
+│   ├── src/store/         données persistées (zustand) et appels en cours
+│   ├── src/styles/        tokens.css (design system), animations.css
+│   └── design.md, palette.md, animation.md   références du design (voir plus bas)
+├── n8n-workflows/         les 3 workflows à importer + modèle de fichier de clés
+├── scripts/               dev.sh (tout lancer), n8n-reload.sh (recréer n8n)
+├── docs/                  architecture, n8n, démo
+└── .claude/skills/cloneme méthode de reprise de design utilisée pour l'interface
 ```
 
-Champs importants:
+## Configuration
 
-```text
-description
-technologies
-generatedContent
-type
-tone
-model
-userId
-createdAt
-```
+### Backend — `backend/.env`
 
-Initialiser la base:
-
-```bash
-cd backend
-npm run db:init
-```
-
-Ouvrir Prisma Studio:
-
-```bash
-cd backend
-npx prisma studio
-```
-
-Voir les logs directement dans le terminal:
-
-```bash
-cd backend
-npm run db:logs
-```
-
-## Flow de generation de post
-
-```text
-Front -> POST /api/posts/generate -> backend -> OpenRouter (deepseek) -> reponse
-                                           \-> log enregistre dans SQLite (GeneratedPostLog)
-```
-
-## Variables d'environnement
-
-Backend (`backend/.env`, voir `backend/.env.example`) :
-
-| Variable | Role |
+| Variable | Rôle |
 |---|---|
-| `OPENROUTER_API_KEY` | cle OpenRouter, jamais envoyee au navigateur |
-| `CORS_ORIGINS` | adresses de front autorisees a appeler le backend |
-| `N8N_BASE_URL` | adresse de n8n (defaut `http://localhost:5678`) |
-| `APP_URL` | adresse publique du front, envoyee a OpenRouter |
-| `DATABASE_URL` | base SQLite |
+| `OPENROUTER_API_KEY` | clé OpenRouter, jamais envoyée au navigateur |
+| `CORS_ORIGINS` | adresses de front autorisées, séparées par des virgules |
+| `N8N_BASE_URL` | adresse de n8n (défaut `http://localhost:5678`) |
+| `APP_URL` | adresse publique du front, envoyée à OpenRouter |
+| `DATABASE_URL` | base SQLite (défaut `file:./dev.db`) |
 
-Front (`frontend/.env`, optionnel) :
+### n8n — `~/n8n.env` (hors du dépôt)
 
-| Variable | Role |
+| Variable | Rôle |
 |---|---|
-| `VITE_API_URL` | adresse publique du backend, ex. `https://xxxx.trycloudflare.com/api`. Vide en local. |
-| `VITE_BASE` | chemin de base : `/` pour Vercel ou un domaine propre, `/job-automation-/` par defaut (GitHub Pages) |
+| `OPENROUTER_API_KEY` | visuel IA |
+| `GOOGLE_API_KEY`, `GOOGLE_CX` | scraper (Google Custom Search) |
+| `N8N_BLOCK_ENV_ACCESS_IN_NODE=false` | permet aux workflows de lire ces variables |
 
-Protection du backend : les routes qui appellent l'IA sont limitees a 20 appels par minute et par IP, et seuls les webhooks `resource-suggestions`, `generate-visual` et `scraper` sont relayes vers n8n. La limite de depense de la cle OpenRouter reste la vraie protection : la fixer sur openrouter.ai.
+Après un changement de clé : `npm run n8n:reload` (`docker restart` ne relit pas ce fichier).
 
-## Demo avec un tunnel
+### Front — `frontend/.env` (optionnel)
 
-Le backend est le seul service a exposer : n8n reste prive.
+| Variable | Rôle |
+|---|---|
+| `VITE_API_URL` | adresse publique du backend en démo. Vide en local (proxy Vite). |
+| `VITE_BASE` | `/` pour Vercel ; par défaut `/job-automation-/` (GitHub Pages) |
 
-1. Lancer `npm run dev`.
-2. Ouvrir un tunnel vers le backend, par exemple avec cloudflared (sans compte) :
+## Base de données
 
-   ```bash
-   cloudflared tunnel --url http://localhost:4000
-   ```
+Prisma + SQLite, une table : `GeneratedPostLog` (chaque post généré, avec sa description, ses technologies, son ton, le modèle et la réponse brute).
 
-   L'adresse `https://xxxx.trycloudflare.com` s'affiche.
-3. Autoriser le front dans `backend/.env` : ajouter son adresse a `CORS_ORIGINS` (ex. `https://mon-app.vercel.app`), puis relancer le backend.
-4. Construire le front avec `VITE_API_URL=https://xxxx.trycloudflare.com/api`.
-
-Vercel heberge le front (fichiers statiques), pas le tunnel. Projet Vercel : dossier racine `frontend`, variables `VITE_BASE=/` et `VITE_API_URL=<adresse du tunnel>/api`. Le fichier `frontend/vercel.json` gere les routes.
-
-L'adresse d'un tunnel rapide change a chaque lancement : refaire les etapes 3 et 4 si tu le relances, ou utiliser un tunnel nomme.
-
-## Deploiement GitHub Pages
-
-Le projet est configure pour GitHub Pages avec Vite (`base: /job-automation-/`). Le workflow `.github/workflows/deploy-pages.yml` build `frontend` et publie `frontend/dist`.
-
-Aucun secret n'est necessaire. Pour que l'app publiee atteigne un backend, ajouter une variable (pas un secret) :
-
-```text
-Repository Settings -> Secrets and variables -> Actions -> Variables -> New repository variable
-Name: VITE_API_URL
-Value: https://xxxx.trycloudflare.com/api
+```bash
+npm run db:init --prefix backend   # créer la table
+npm run db:logs --prefix backend   # voir les derniers posts dans le terminal
+cd backend && npx prisma studio    # parcourir la base dans le navigateur
 ```
 
-Puis activer GitHub Pages (`Settings -> Pages -> Source: GitHub Actions`) et pousser sur `main`. L'app sera publiee sur :
+## Démo en ligne
 
-```text
-https://oussamaalmouallim.github.io/job-automation-/
+Le backend est le seul service à exposer. La marche à suivre complète (tunnel, Vercel, répétition) est dans [docs/demo.md](docs/demo.md).
+
+## Design de l'interface
+
+L'interface reprend la direction artistique de la maquette Nexora (Dribbble), adaptée à LinkedAI avec la méthode CloneMe (`.claude/skills/cloneme/`). Trois fichiers pilotent l'apparence, à la racine de `frontend/` :
+
+| Fichier | Rôle | Code piloté |
+|---|---|---|
+| `design.md` | pages, composants (`P-xx`, `C-xx`), responsive | `src/pages/`, `src/components/` |
+| `palette.md` | couleurs, ombres, rayons, typographie | `src/styles/tokens.css` (valeur pour valeur) |
+| `animation.md` | animations (`A-xx`), mode réduit | `src/lib/animations.js` |
+
+Règle : aucune couleur ni durée en dur dans un composant ; tout passe par `tokens.css`, exposé dans `tailwind.config.js`. Rapport de la refonte : `frontend/RAPPORT-CLONAGE.md`.
+
+## Qualité
+
+```bash
+npm run lint --prefix frontend                                     # ESLint
+npm run build --prefix frontend                                    # build de production
+node .claude/skills/cloneme/scripts/verifier-synchro.mjs frontend  # design.md/palette.md ↔ code
 ```
 
-## Phases
+## Sécurité
 
-- **Phase 1**: MVP dashboard, generateur de posts, connexion scraper n8n, logs Prisma.
-- **Phase 2**: Authentification et rattachement des logs a un utilisateur.
-- **Phase 3**: Lettres de motivation, recherche d'offres, exports.
-- **Phase 4**: Abonnements, analytics, paiements.
+- Clés uniquement dans `backend/.env` et `~/n8n.env`, tous deux hors du dépôt.
+- Le backend limite les routes IA à 20 appels par minute et par IP, et ne relaie que 3 webhooks n8n.
+- La limite de dépense de la clé OpenRouter (sur openrouter.ai) reste la vraie protection en démo publique.
+- Une ancienne clé Google figure dans l'historique git du dépôt public : la restreindre à « Custom Search API » dans Google Cloud, ou la remplacer.
+
+## Feuille de route
+
+- **Phase 1 — fait** : dashboard, générateur de posts, ressources, visuel IA, scraper n8n, historique en base, interface refaite.
+- **Phase 2** : authentification et rattachement des données à un utilisateur ; lettre de motivation adaptée par IA.
+- **Phase 3** : recherche d'offres multi-sources, exports.
+- **Phase 4** : abonnements, analytics, paiements.
+
+Le plan d'origine (mai 2026) est gardé dans [docs/plan-initial.md](docs/plan-initial.md).
 
 ---
 
-Developpe par **Oussama AL MOUALLIM EL KANOUNI**.
+Développé par **Oussama AL MOUALLIM EL KANOUNI**.

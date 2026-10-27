@@ -1,3 +1,5 @@
+> **Plan d'origine, mai 2026 — gardé pour l'historique.** L'architecture réelle a changé (backend Express + SQLite au lieu de Supabase, DeepSeek seul, n8n derrière le backend). L'état actuel est décrit dans le [README](../README.md).
+
 # PLAN — AI Job Automation & LinkedIn Assistant SaaS
 
 > **Auteur** : Oussama AL MOUALLIM EL KANOUNI  
