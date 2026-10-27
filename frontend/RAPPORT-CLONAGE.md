@@ -48,7 +48,7 @@ Refonte de l'interface faite le 2026-10-26, avec la méthode CloneMe
 
 ## 5. Pas testé ici
 
-- La génération réelle d'un post : il faut une clé OpenRouter dans `frontend/.env`.
+- La génération réelle d'un post : elle passe par le backend, avec la clé de `backend/.env`.
 - Les ressources, le visuel IA et le scraper avec un vrai n8n : aucun n8n ne tourne en local.
 - L'export PNG du visuel : il était déjà probablement cassé avant la refonte (`sandbox="allow-scripts"` sans `allow-same-origin` rend `contentDocument` nul). Comportement non modifié.
 - Les animations en direct : le panneau de navigateur caché ralentit `requestAnimationFrame`. À regarder dans un vrai navigateur.

@@ -7,6 +7,7 @@ import { ScanSearch, Download, Trash2, UsersRound, Settings, CircleCheck, Circle
 import useAppStore from '../store/useAppStore'
 import { avecActivite } from '../store/useActiviteStore'
 import { exporterProfilsCsv } from '../lib/exportCsv'
+import { API_BASE } from '../services/api'
 import Page from '../components/ui/Page'
 import { Card, CardHeader } from '../components/ui/Card'
 import { Field, Input, Select } from '../components/ui/Field'
@@ -16,12 +17,9 @@ import EmptyState from '../components/ui/EmptyState'
 import TableProfils from '../components/scraper/TableProfils'
 
 const envScraperWebhook = import.meta.env.VITE_N8N_SCRAPER_WEBHOOK || ''
-const localScraperWebhook = '/n8n/webhook/scraper'
 
-const getDefaultScraperWebhook = () => {
-  if (envScraperWebhook) return envScraperWebhook
-  return import.meta.env.DEV ? localScraperWebhook : ''
-}
+// Par défaut le scraper passe par le backend, qui relaie vers n8n (même chemin en local et en démo).
+const getDefaultScraperWebhook = () => envScraperWebhook || `${API_BASE}/n8n/scraper`
 
 const parseMaybeJson = (value) => {
   if (typeof value !== 'string') return value

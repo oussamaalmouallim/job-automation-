@@ -143,15 +143,15 @@ donnée réelle de LinkedAI, ou n'est pas repris.
 
 ## 9. Points d'intégration backend
 
-Inchangés. Tous dans `src/services/api.js` :
+Tous dans `src/services/api.js`, tous via le backend (`API_BASE` = `/api` en local, `VITE_API_URL` en démo). Le front ne contient aucune clé.
 
 | Fonction | Utilisée par | Cible |
 |---|---|---|
-| `generatePostWithOpenRouter` | P-02 | OpenRouter (navigateur) |
-| `getResources` | P-02 | n8n `/webhook/resource-suggestions` |
-| `generateVisual` | C-21 | n8n `/webhook/generate-visual` |
-| appel direct axios | P-03 | webhook scraper (paramètres, variable d'env ou proxy `/n8n`) |
-| `adaptLetter`, `searchJobs` | aucune page encore | Phase 2 et 3 |
+| `generatePost` | P-02 | backend `POST /api/posts/generate` → OpenRouter, log enregistré |
+| `getResources` | P-02 | backend `POST /api/n8n/resource-suggestions` → n8n |
+| `generateVisual` | C-21 | backend `POST /api/n8n/generate-visual` → n8n |
+| appel direct axios | P-03 | webhook scraper : paramètres, `VITE_N8N_SCRAPER_WEBHOOK`, sinon backend `POST /api/n8n/scraper` |
+| `adaptLetter`, `searchJobs` | aucune page encore | Phase 2 et 3 (non autorisés côté backend tant qu'ils n'existent pas) |
 
 ## 10. Correspondance maquette → app
 

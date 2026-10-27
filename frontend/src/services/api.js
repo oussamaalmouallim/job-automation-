@@ -2,94 +2,46 @@ import axios from 'axios'
 
 // Scraper LinkedIn
 export const triggerScraper = async ({ query, location = 'maroc', maxPages = 2 }) => {
-  const res = await axios.post('/n8n/webhook/scraper', { query, location, maxPages })
+  const res = await axios.post(`${API_BASE}/n8n/scraper`, { query, location, maxPages })
   return res.data
 }
 
 export const getScraperResults = async () => []
 
-// Generateur de posts
-// Un seul modèle : les anciens choix gemini (gratuit) et grok n'existent plus sur OpenRouter.
-const MODELE_OPENROUTER = 'deepseek/deepseek-chat'
+// Adresse du backend. En local : le proxy Vite ('/api'). En démo : VITE_API_URL, l'adresse publique du backend.
+export const API_BASE = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '')
 
-export async function generatePostWithOpenRouter({ type, description, tech, tone }) {
-  const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY
-
-  if (!apiKey || apiKey === 'REMPLACE_PAR_TA_VRAIE_CLE') {
-    throw new Error('Cle OpenRouter manquante: ajoute VITE_OPENROUTER_API_KEY dans frontend/.env puis redemarre Vite.')
+// Generateur de posts : la clé OpenRouter reste sur le backend, le navigateur ne la voit jamais.
+export async function generatePost({ type, description, tech, tone }) {
+  try {
+    const res = await axios.post(`${API_BASE}/posts/generate`, { type, description, tech, tone }, { timeout: 90000 })
+    return res.data.post
+  } catch (err) {
+    if (err.response?.data?.error) throw new Error(err.response.data.error)
+    if (!err.response) throw new Error('Backend injoignable : lance-le avec npm run dev (voir README).')
+    throw err
   }
-
-  const prompt = `Tu es un expert LinkedIn copywriter. Rédige un post LinkedIn en français pour un ingénieur.
-
-Type de post: ${type}
-Description: ${description}
-Technologies: ${tech || 'non spécifié'}
-Ton souhaité: ${tone || 'Professionnel'}
-
-Règles:
-- Accroche forte dès la première ligne
-- Contenu concret et utile
-- Terminer par une question engageante
-- 5 à 8 hashtags pertinents à la fin
-- Entre 150 et 250 mots
-- Ton humain et authentique
-
-Réponds uniquement avec le texte du post, sans commentaire.`
-
-  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-      'HTTP-Referer': 'https://oussamaalmouallim.github.io',
-      'X-Title': 'LinkedAI',
-    },
-    body: JSON.stringify({
-      model: MODELE_OPENROUTER,
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: 1000,
-      temperature: 0.8,
-    }),
-  })
-
-  const data = await response.json()
-
-  if (!response.ok) {
-    throw new Error(data?.error?.message || 'Erreur OpenRouter')
-  }
-
-  const content = data?.choices?.[0]?.message?.content
-  if (!content) {
-    throw new Error('Réponse OpenRouter invalide')
-  }
-
-  return content
-}
-
-export const generatePost = async ({ type, description, tech, tone, model }) => {
-  const post = await generatePostWithOpenRouter({ type, description, tech, tone, model })
-  return { success: true, post }
 }
 
 export const getResources = async ({ post, tech, type }) => {
-  const res = await axios.post('/n8n/webhook/resource-suggestions', { post, tech, type })
+  const res = await axios.post(`${API_BASE}/n8n/resource-suggestions`, { post, tech, type })
   return res.data
 }
 
 // Generateur de visuels IA
 export const generateVisual = async ({ post, tech, type }) => {
-  const res = await axios.post('/n8n/webhook/generate-visual', { post, tech, type })
+  const res = await axios.post(`${API_BASE}/n8n/generate-visual`, { post, tech, type })
   return res.data
 }
 
 // Lettre de motivation
 export const adaptLetter = async ({ letterText, jobOffer, template, model }) => {
-  const res = await axios.post('/n8n/webhook/adapt-letter', { letterText, jobOffer, template, model })
+  const res = await axios.post(`${API_BASE}/n8n/adapt-letter`, { letterText, jobOffer, template, model })
   return res.data
 }
 
 // Recherche offres
 export const searchJobs = async ({ query, location, remote, stack }) => {
-  const res = await axios.post('/n8n/webhook/search-jobs', { query, location, remote, stack })
+  const res = await axios.post(`${API_BASE}/n8n/search-jobs`, { query, location, remote, stack })
   return res.data
 }

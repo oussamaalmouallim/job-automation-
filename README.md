@@ -52,38 +52,43 @@ styles/                 tokens.css, animations.css
 
 Rapport de la refonte : `frontend/RAPPORT-CLONAGE.md`.
 
-## Lancement
+## Architecture
 
-### Backend
+```text
+Navigateur (front React)
+  -> Backend Express :4000          seul point d'entree public
+       -> OpenRouter                 generation des posts (cle OPENROUTER_API_KEY sur le serveur)
+       -> n8n :5678 /webhook/...     ressources, visuel IA, scraper (3 webhooks autorises)
+       -> SQLite (Prisma)            logs des posts generes
+```
+
+Le front ne contient plus aucune cle. Il n'appelle que le backend (`/api`).
+
+## Lancement en une commande
+
+Prerequis : Docker lance, le conteneur `n8n` cree (section suivante), et `backend/.env` rempli.
 
 ```bash
-cd backend
-npm install
-npm run db:init
+cp backend/.env.example backend/.env   # une seule fois, puis renseigner OPENROUTER_API_KEY
+npm install --prefix backend && npm install --prefix frontend   # une seule fois
+npm run db:init --prefix backend                                 # une seule fois
 npm run dev
 ```
 
-Le backend tourne sur:
+`npm run dev` (a la racine) demarre n8n, le backend (http://localhost:4000) et le front (http://localhost:3000). Ctrl+C arrete le backend et le front ; n8n reste actif (`docker stop n8n` pour l'arreter).
 
-```text
-http://localhost:4000
-```
+## n8n
 
-### Frontend
-
-Dans un deuxieme terminal:
+Creer le conteneur une fois, avec ses donnees gardees et ses cles lues dans un fichier hors du repo :
 
 ```bash
-cd frontend
-npm install
-npm run dev
+cp n8n-workflows/n8n.env.example ~/n8n.env   # puis renseigner les cles dedans
+docker run -d --name n8n --restart unless-stopped -p 5678:5678 --env-file ~/n8n.env -v ~/n8n-data:/home/node/.n8n n8nio/n8n
 ```
 
-Le frontend tourne sur:
+Importer et activer les 3 workflows (menu Import from file dans n8n) : `linkedin-resource-suggestions-v4.json`, `linkedin-visual-generator.json`, `linkedin-scraper-webhook.json`.
 
-```text
-http://localhost:3000
-```
+Attention : `docker restart n8n` ne relit pas `~/n8n.env`. Apres un changement de cle, supprimer et recreer le conteneur (les donnees restent dans `~/n8n-data`).
 
 ## Prisma
 
@@ -132,52 +137,63 @@ npm run db:logs
 ## Flow de generation de post
 
 ```text
-Frontend
-  -> OpenRouter Chat Completions API
-  -> reponse au frontend
+Front -> POST /api/posts/generate -> backend -> OpenRouter (deepseek) -> reponse
+                                           \-> log enregistre dans SQLite (GeneratedPostLog)
 ```
-
-Le frontend n'appelle plus le webhook n8n pour la generation de posts LinkedIn.
 
 ## Variables d'environnement
 
-Frontend:
+Backend (`backend/.env`, voir `backend/.env.example`) :
 
-```env
-VITE_OPENROUTER_API_KEY="REMPLACE_PAR_TA_VRAIE_CLE"
-```
+| Variable | Role |
+|---|---|
+| `OPENROUTER_API_KEY` | cle OpenRouter, jamais envoyee au navigateur |
+| `CORS_ORIGINS` | adresses de front autorisees a appeler le backend |
+| `N8N_BASE_URL` | adresse de n8n (defaut `http://localhost:5678`) |
+| `APP_URL` | adresse publique du front, envoyee a OpenRouter |
+| `DATABASE_URL` | base SQLite |
 
-Backend local:
+Front (`frontend/.env`, optionnel) :
 
-```env
-DATABASE_URL="file:./dev.db"
-```
+| Variable | Role |
+|---|---|
+| `VITE_API_URL` | adresse publique du backend, ex. `https://xxxx.trycloudflare.com/api`. Vide en local. |
+| `VITE_BASE` | chemin de base : `/` pour Vercel ou un domaine propre, `/job-automation-/` par defaut (GitHub Pages) |
+
+Protection du backend : les routes qui appellent l'IA sont limitees a 20 appels par minute et par IP, et seuls les webhooks `resource-suggestions`, `generate-visual` et `scraper` sont relayes vers n8n. La limite de depense de la cle OpenRouter reste la vraie protection : la fixer sur openrouter.ai.
+
+## Demo avec un tunnel
+
+Le backend est le seul service a exposer : n8n reste prive.
+
+1. Lancer `npm run dev`.
+2. Ouvrir un tunnel vers le backend, par exemple avec cloudflared (sans compte) :
+
+   ```bash
+   cloudflared tunnel --url http://localhost:4000
+   ```
+
+   L'adresse `https://xxxx.trycloudflare.com` s'affiche.
+3. Autoriser le front dans `backend/.env` : ajouter son adresse a `CORS_ORIGINS` (ex. `https://mon-app.vercel.app`), puis relancer le backend.
+4. Construire le front avec `VITE_API_URL=https://xxxx.trycloudflare.com/api`.
+
+Vercel heberge le front (fichiers statiques), pas le tunnel. Projet Vercel : dossier racine `frontend`, variables `VITE_BASE=/` et `VITE_API_URL=<adresse du tunnel>/api`. Le fichier `frontend/vercel.json` gere les routes.
+
+L'adresse d'un tunnel rapide change a chaque lancement : refaire les etapes 3 et 4 si tu le relances, ou utiliser un tunnel nomme.
 
 ## Deploiement GitHub Pages
 
-Le projet est configure pour GitHub Pages avec Vite:
+Le projet est configure pour GitHub Pages avec Vite (`base: /job-automation-/`). Le workflow `.github/workflows/deploy-pages.yml` build `frontend` et publie `frontend/dist`.
+
+Aucun secret n'est necessaire. Pour que l'app publiee atteigne un backend, ajouter une variable (pas un secret) :
 
 ```text
-base: /job-automation-/
+Repository Settings -> Secrets and variables -> Actions -> Variables -> New repository variable
+Name: VITE_API_URL
+Value: https://xxxx.trycloudflare.com/api
 ```
 
-Le workflow `.github/workflows/deploy-pages.yml` build `frontend` et publie `frontend/dist`.
-
-Avant de deployer, ajouter ce secret dans GitHub:
-
-```text
-Repository Settings -> Secrets and variables -> Actions -> New repository secret
-Name: VITE_OPENROUTER_API_KEY
-Value: ta cle OpenRouter
-```
-
-Puis activer GitHub Pages:
-
-```text
-Repository Settings -> Pages -> Source: GitHub Actions
-```
-
-Ensuite, pousser sur `main`. L'app sera publiee sur:
+Puis activer GitHub Pages (`Settings -> Pages -> Source: GitHub Actions`) et pousser sur `main`. L'app sera publiee sur :
 
 ```text
 https://oussamaalmouallim.github.io/job-automation-/

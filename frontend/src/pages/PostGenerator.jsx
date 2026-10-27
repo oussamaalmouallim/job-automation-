@@ -1,11 +1,11 @@
-/** cloneme: P-02 — Générateur de posts LinkedIn. Logique inchangée (OpenRouter, ressources n8n, visuel IA). */
+/** cloneme: P-02 — Générateur de posts LinkedIn : génération par le backend, ressources n8n, visuel IA. */
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { PenLine, Copy, Image as ImageIcon, Sparkles, RefreshCw, ExternalLink, Download, Lightbulb, History } from 'lucide-react'
 import useAppStore from '../store/useAppStore'
 import { avecActivite } from '../store/useActiviteStore'
-import { generatePostWithOpenRouter, getResources } from '../services/api'
+import { generatePost, getResources } from '../services/api'
 import VisualCardGenerator from '../components/posts/VisualCardGenerator'
 import Page from '../components/ui/Page'
 import { Card, CardHeader } from '../components/ui/Card'
@@ -53,7 +53,7 @@ export default function PostGenerator() {
     if (!form.description.trim()) { toast.error('Décris ton projet ou ton sujet.'); return }
     setLoading(true)
     try {
-      const text = await avecActivite(generatePostWithOpenRouter({
+      const text = await avecActivite(generatePost({
         type: form.type, description: form.description,
         tech: form.tech, tone: form.tone, model: form.model,
       }))

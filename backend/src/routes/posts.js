@@ -4,37 +4,69 @@ import { prisma } from '../lib/prisma.js'
 
 const router = Router()
 
-const extractGeneratedContent = (data) => {
-  if (typeof data === 'string') return data
+const MODELE = 'deepseek/deepseek-chat'
+const LONGUEUR_MAX = 2000
 
-  return data?.post
-    || data?.text
-    || data?.content
-    || data?.choices?.[0]?.message?.content
-    || JSON.stringify(data)
-}
+const construirePrompt = ({ type, description, tech, tone }) => `Tu es un expert LinkedIn copywriter. Rédige un post LinkedIn en français pour un ingénieur.
+
+Type de post: ${type || 'Projet technique'}
+Description: ${description}
+Technologies: ${tech || 'non spécifié'}
+Ton souhaité: ${tone || 'Professionnel'}
+
+Règles:
+- Accroche forte dès la première ligne
+- Contenu concret et utile
+- Terminer par une question engageante
+- 5 à 8 hashtags pertinents à la fin
+- Entre 150 et 250 mots
+- Ton humain et authentique
+
+Réponds uniquement avec le texte du post, sans commentaire.`
 
 // POST /api/posts/generate
+// La clé OpenRouter reste ici, côté serveur : le navigateur ne la voit jamais.
 router.post('/generate', async (req, res) => {
+  const { type, description, tech, technologies, tone, userId } = req.body ?? {}
+
+  if (!description?.trim()) {
+    return res.status(400).json({ error: 'La description est obligatoire' })
+  }
+  if (description.length > LONGUEUR_MAX) {
+    return res.status(400).json({ error: `La description est trop longue (${LONGUEUR_MAX} caractères maximum)` })
+  }
+
+  const apiKey = process.env.OPENROUTER_API_KEY
+  if (!apiKey) {
+    return res.status(500).json({ error: 'OPENROUTER_API_KEY non configurée sur le serveur' })
+  }
+
+  const userTechnologies = String(technologies || tech || '').slice(0, 300)
+
   try {
-    const { type, description, tech, technologies, tone, model, userId } = req.body
+    const openRouterRes = await axios.post(
+      'https://openrouter.ai/api/v1/chat/completions',
+      {
+        model: MODELE,
+        messages: [{ role: 'user', content: construirePrompt({ type, description, tech: userTechnologies, tone }) }],
+        max_tokens: 1000,
+        temperature: 0.8,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': process.env.APP_URL || 'http://localhost:3000',
+          'X-Title': 'LinkedAI',
+        },
+        timeout: 60_000,
+      }
+    )
 
-    if (!description?.trim()) {
-      return res.status(400).json({ error: 'La description est obligatoire' })
+    const generatedContent = openRouterRes.data?.choices?.[0]?.message?.content
+    if (!generatedContent) {
+      return res.status(502).json({ error: 'Réponse OpenRouter invalide' })
     }
-
-    const webhookUrl = process.env.N8N_POST_WEBHOOK || process.env.VITE_N8N_POST_WEBHOOK
-    if (!webhookUrl) {
-      return res.status(500).json({ error: 'N8N_POST_WEBHOOK non configuré' })
-    }
-
-    const userTechnologies = technologies || tech || ''
-
-    const n8nRes = await axios.post(webhookUrl, { type, description, tech: userTechnologies, tone, model }, {
-      timeout: 60_000
-    })
-
-    const generatedContent = extractGeneratedContent(n8nRes.data)
 
     const log = await prisma.generatedPostLog.create({
       data: {
@@ -43,16 +75,17 @@ router.post('/generate', async (req, res) => {
         description,
         technologies: userTechnologies || null,
         tone: tone || null,
-        model: model || null,
+        model: MODELE,
         generatedContent,
-        rawResponse: typeof n8nRes.data === 'string' ? n8nRes.data : JSON.stringify(n8nRes.data)
-      }
+        rawResponse: JSON.stringify(openRouterRes.data),
+      },
     })
 
     return res.json({ success: true, post: generatedContent, log })
   } catch (err) {
-    console.error('[Posts] Erreur n8n:', err.message)
-    return res.status(502).json({ error: 'Erreur lors de la génération du post' })
+    const message = err.response?.data?.error?.message || err.message
+    console.error('[Posts] Erreur OpenRouter:', message)
+    return res.status(502).json({ error: `Erreur OpenRouter : ${message}` })
   }
 })
 
@@ -64,7 +97,7 @@ router.get('/logs', async (req, res) => {
     const logs = await prisma.generatedPostLog.findMany({
       where: userId ? { userId: String(userId) } : undefined,
       orderBy: { createdAt: 'desc' },
-      take: 50
+      take: 50,
     })
 
     return res.json({ success: true, logs })
