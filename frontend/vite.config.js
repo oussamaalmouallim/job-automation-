@@ -3,7 +3,8 @@ import react from '@vitejs/plugin-react'
 import { fileURLToPath, URL } from 'node:url'
 
 export default defineConfig({
-  base: '/job-automation-/',
+  // GitHub Pages sert l'app sous /job-automation-/ ; Vercel ou un domaine propre : VITE_BASE=/
+  base: process.env.VITE_BASE || '/job-automation-/',
   plugins: [react()],
   resolve: {
     alias: {
