@@ -56,7 +56,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "Client-ID mIvZ1kxR3k3O5zOfqnXmNRsOztU8btqwSSZsjoxWp1A"
+              "value": "=Client-ID {{ $env.UNSPLASH_ACCESS_KEY }}"
             }
           ]
         },

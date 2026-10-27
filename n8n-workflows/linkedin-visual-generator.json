@@ -34,7 +34,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "Bearer REMPLACE_PAR_TA_CLE_OPENROUTER"
+              "value": "=Bearer {{ $env.OPENROUTER_API_KEY }}"
             },
             {
               "name": "Content-Type",
@@ -53,14 +53,14 @@
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ JSON.stringify({\"model\": \"google/gemini-2.0-flash-exp:free\", \"messages\": [{\"role\": \"user\", \"content\": $json.prompt}], \"max_tokens\": 3000, \"temperature\": 0.7}) }}",
+        "body": "={{ JSON.stringify({\"model\": \"deepseek/deepseek-chat\", \"messages\": [{\"role\": \"user\", \"content\": $json.prompt}], \"max_tokens\": 3000, \"temperature\": 0.7}) }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [680, 300],
       "id": "node-openrouter",
-      "name": "OpenRouter Gemini"
+      "name": "OpenRouter AI"
     },
     {
       "parameters": {
@@ -92,9 +92,9 @@
       "main": [[{ "node": "Analyze & Build Prompt", "type": "main", "index": 0 }]]
     },
     "Analyze & Build Prompt": {
-      "main": [[{ "node": "OpenRouter Gemini", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "OpenRouter AI", "type": "main", "index": 0 }]]
     },
-    "OpenRouter Gemini": {
+    "OpenRouter AI": {
       "main": [[{ "node": "Extract HTML", "type": "main", "index": 0 }]]
     },
     "Extract HTML": {

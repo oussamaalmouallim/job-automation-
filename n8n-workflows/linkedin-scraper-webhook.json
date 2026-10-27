@@ -1,0 +1,77 @@
+{
+  "name": "linkedin-scraper-webhook",
+  "nodes": [
+    {
+      "id": "n-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "3f6f6a7e-5b0e-4a55-9a53-6f1c2c1b7a01",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "scraper",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "n-code",
+      "name": "Scrape Google",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        260,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Appelle Google Custom Search page par page et renvoie les profils LinkedIn trouvés.\nconst body = $input.first().json.body || {};\nconst query = String(body.query || 'ingenieur cloud').slice(0, 120);\nconst location = String(body.location || '').slice(0, 60);\nconst maxPages = Math.min(Math.max(parseInt(body.maxPages, 10) || 1, 1), 10);\nconst q = `${query} ${location} site:linkedin.com/in`.replace(/\\s+/g, ' ').trim();\n\nconst key = $env.GOOGLE_API_KEY;\nconst cx = $env.GOOGLE_CX;\nif (!key || !cx) throw new Error('GOOGLE_API_KEY ou GOOGLE_CX manquant dans ~/n8n.env');\n\nconst out = [];\nlet start = 1;\nfor (let page = 0; page < maxPages && start <= 91; page++) {\n  const res = await this.helpers.httpRequest({\n    method: 'GET',\n    url: 'https://www.googleapis.com/customsearch/v1',\n    qs: { key, cx, q, start },\n    json: true,\n  });\n  for (const item of res.items || []) {\n    const parts = String(item.title || '').split(' - ');\n    out.push({ json: {\n      name: parts[0] || null,\n      title: parts.slice(1).join(' - ') || null,\n      link: item.link || null,\n      snippet: item.snippet || null,\n      image: item.pagemap?.cse_thumbnail?.[0]?.src || null,\n    } });\n  }\n  const next = res.queries?.nextPage?.[0]?.startIndex;\n  if (!next) break;\n  start = next;\n  await new Promise((r) => setTimeout(r, 400));\n}\n\n// Un item au moins, sinon le webhook ne répond jamais.\nreturn out.length ? out : [{ json: { link: null } }];\n"
+      }
+    },
+    {
+      "id": "n-respond",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        520,
+        0
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { profiles: $input.all().map(i => i.json).filter(p => p.link) } }}",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Scrape Google",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scrape Google": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

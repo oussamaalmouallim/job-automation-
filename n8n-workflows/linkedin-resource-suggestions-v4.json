@@ -34,7 +34,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "Bearer REMPLACE_PAR_TA_CLE_OPENROUTER"
+              "value": "=Bearer {{ $env.OPENROUTER_API_KEY }}"
             },
             {
               "name": "Content-Type",
@@ -101,7 +101,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "Client-ID mIvZ1kxR3k3O5zOfqnXmNRsOztU8btqwSSZsjoxWp1A"
+              "value": "=Client-ID {{ $env.UNSPLASH_ACCESS_KEY }}"
             }
           ]
         },

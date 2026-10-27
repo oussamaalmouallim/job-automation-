@@ -53,7 +53,7 @@
           "parameters": [
             {
               "name": "key",
-              "value": "***CLE-GOOGLE-RETIREE***"
+              "value": "={{ $env.GOOGLE_API_KEY }}"
             },
             {
               "name": "cx",
