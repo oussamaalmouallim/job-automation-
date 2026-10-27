@@ -101,7 +101,7 @@ export default function VisualCardGenerator({ post, tech, type }) {
         <div className="flex h-[220px] items-center justify-center rounded-controle border border-dashed border-ligne bg-surface-douce sm:h-[300px]">
           <div className="space-y-2 text-center">
             <Sparkles size={28} className="mx-auto animate-pulse text-accent" />
-            <p className="text-sm font-medium text-texte">Gemini génère ton visuel…</p>
+            <p className="text-sm font-medium text-texte">L'IA génère ton visuel…</p>
             <p className="text-xs text-texte-pale">Architecture · Animation · Design</p>
           </div>
         </div>

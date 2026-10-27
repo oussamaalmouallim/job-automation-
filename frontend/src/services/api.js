@@ -9,18 +9,15 @@ export const triggerScraper = async ({ query, location = 'maroc', maxPages = 2 }
 export const getScraperResults = async () => []
 
 // Generateur de posts
-export async function generatePostWithOpenRouter({ type, description, tech, tone, model }) {
+// Un seul modèle : les anciens choix gemini (gratuit) et grok n'existent plus sur OpenRouter.
+const MODELE_OPENROUTER = 'deepseek/deepseek-chat'
+
+export async function generatePostWithOpenRouter({ type, description, tech, tone }) {
   const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY
 
   if (!apiKey || apiKey === 'REMPLACE_PAR_TA_VRAIE_CLE') {
     throw new Error('Cle OpenRouter manquante: ajoute VITE_OPENROUTER_API_KEY dans frontend/.env puis redemarre Vite.')
   }
-
-  const modelId = model === 'gemini'
-    ? 'google/gemini-2.0-flash-exp:free'
-    : model === 'grok'
-      ? 'x-ai/grok-3-mini-beta'
-      : 'deepseek/deepseek-chat'
 
   const prompt = `Tu es un expert LinkedIn copywriter. Rédige un post LinkedIn en français pour un ingénieur.
 
@@ -48,7 +45,7 @@ Réponds uniquement avec le texte du post, sans commentaire.`
       'X-Title': 'LinkedAI',
     },
     body: JSON.stringify({
-      model: modelId,
+      model: MODELE_OPENROUTER,
       messages: [{ role: 'user', content: prompt }],
       max_tokens: 1000,
       temperature: 0.8,

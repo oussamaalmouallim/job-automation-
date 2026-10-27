@@ -43,9 +43,6 @@ export default function Settings() {
           <Field label="Modèle IA par défaut" htmlFor="defaultModel">
             <Select id="defaultModel" name="defaultModel" value={form.defaultModel} onChange={handleChange}>
               <option value="deepseek">DeepSeek</option>
-              <option value="gemini">Gemini</option>
-              <option value="llama">Llama</option>
-              <option value="claude">Claude</option>
             </Select>
           </Field>
           <Field label="Ton par défaut" htmlFor="defaultTone">
