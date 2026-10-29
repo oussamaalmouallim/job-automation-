@@ -3,6 +3,7 @@
 > Ce document sert de référence unique pour faire évoluer Job Automation (nom actuel dans l'interface : **LinkedAI**) d'un outil personnel vers un SaaS multi-utilisateur.
 > Il a été préparé le **29 octobre 2026**, à partir du code de la branche `main` (commit `fbeaf5c`) et d'une recherche web faite le même jour.
 > Aucun code applicatif n'a été modifié pour l'écrire.
+> **Mise à jour du 29/10/2026** : décisions D-01 à D-11 prises (section 7), lots adaptés, ordre de démarrage fixé (section 8.5).
 > Le plan d'origine (mai 2026) reste disponible dans [docs/plan-initial.md](docs/plan-initial.md).
 
 ---
@@ -29,8 +30,9 @@
    - 5.4 [Sources d'offres d'emploi utilisables légalement](#54-sources-doffres-demploi-utilisables-légalement)
    - 5.5 [Positionnement SaaS de Job Automation](#55-positionnement-saas-de-job-automation)
 6. [Architecture cible et dépendances](#6-architecture-cible-et-dépendances)
-7. [Décisions à valider](#7-décisions-à-valider)
+7. [Décisions](#7-décisions)
 8. [Méthode de travail et stratégie de test](#8-méthode-de-travail-et-stratégie-de-test)
+   - 8.5 [Démarrage : ordre des premiers lots](#85-démarrage--ordre-des-premiers-lots)
 9. [Phase 0 — Socle technique](#phase-0--socle-technique)
 10. [Phase 1 — Fiabilisation du scraping](#phase-1--fiabilisation-du-scraping)
 11. [Phase 2 — Gestion des offres d'emploi](#phase-2--gestion-des-offres-demploi)
@@ -39,7 +41,7 @@
 14. [Phase 5 — Suivi des candidatures et progression](#phase-5--suivi-des-candidatures-et-progression)
 15. [Phase 6 — Personnalisation et durcissement multi-utilisateur](#phase-6--personnalisation-et-durcissement-multi-utilisateur)
 16. [Phase 7 — Assistant IA (plus tard)](#phase-7--assistant-ia-plus-tard)
-17. [Phase 8 — Préparation à la commercialisation](#phase-8--préparation-à-la-commercialisation)
+17. [Phase 8 — Préparation à la commercialisation (reportée)](#phase-8--préparation-à-la-commercialisation-reportée)
 18. [Registre des risques](#18-registre-des-risques)
 19. [Sources](#19-sources)
 
@@ -67,7 +69,7 @@
 ### Identifiants
 
 - Phases : `P0` à `P8`. Lots : `L<phase>.<numéro>`, par exemple `L1.3`.
-- Décisions à valider : `D-01`, `D-02`… (section 7).
+- Décisions : `D-01`, `D-02`… (section 7).
 - Risques : `R-01`, `R-02`… (section 18).
 - Tests : `TU` unitaire, `TI` intégration, `TF` fonctionnel, `TNR` non-régression, `TS` multi-utilisateur et sécurité.
 
@@ -85,16 +87,21 @@
 4. **Aucun test automatisé** n'existe dans le dépôt.
 5. **Lettre de motivation, offres d'emploi et CV n'existent pas** : les deux premières sont des pages d'attente, le CV n'a aucune trace dans le code.
 
-**Ordre proposé** :
+**Ordre retenu** :
 
 - une **Phase 0 de socle** (tests, base PostgreSQL, comptes) est ajoutée avant le scraping, parce que la persistance après déconnexion et reconnexion, demandée en Phase 1, suppose des comptes ;
+- **exception urgente** : le changement de source du scraper (`L1.2` et `L1.4`) passe juste après les tests (`L0.1`, `L0.2`), pour être en service avant le 1er janvier 2027 (section 8.5) ;
 - viennent ensuite le scraping, les offres, le CV, les lettres et posts, puis le suivi des candidatures ;
-- la personnalisation avancée, l'assistant IA et la commercialisation ferment la marche.
+- la personnalisation avancée et l'assistant IA ferment la marche. La commercialisation (Phase 8) est **reportée**.
 
-**Décisions urgentes** :
+**Décisions prises le 29/10/2026** (détail en section 7) :
 
-- `D-01` : quelle source de profils après l'arrêt de Google Custom Search ;
-- `D-05` : comment intégrer la Skill CV, qui est propriétaire et ne tourne que sur macOS, dans un dépôt aujourd'hui public.
+- profils : un **service de recherche payant** branché sur le backend, n8n gardé en secours ;
+- base **PostgreSQL** ; connexion par une **bibliothèque open source** compatible Express et Prisma ;
+- profils supprimés **seulement par l'utilisateur** ;
+- Skill CV **copiée dans ce dépôt**, qui passe **privé** avant cette copie ;
+- produit **en français** ;
+- hébergement, nom, paiement et Phase 8 : **reportés**.
 
 ---
 
@@ -487,9 +494,10 @@ Backend Express (modulaire)
   └─ compte/          préférences, profil pro, export RGPD, suppression P6
   │
   ├─▶ PostgreSQL (Prisma)                                              P0
-  ├─▶ Stockage de fichiers (disque ou S3 compatible, ex. MinIO)        P3
-  ├─▶ Service CV privé (Python, conteneur Linux)                       P3
-  └─▶ n8n (gardé pour les workflows existants tant que leur remplacement n'est pas validé)
+  ├─▶ Fournisseur de recherche payant (profils)                        P1 (avancé)
+  ├─▶ Stockage de fichiers (disque local d'abord)                      P3
+  ├─▶ Skill CV dans services/cv/ (Python, exécutée sur macOS en local) P3
+  └─▶ n8n : visuel, ressources, et secours du scraper (D-06)
 ```
 
 ### 6.2 Modèle de données cible (première version, à affiner lot par lot)
@@ -541,21 +549,34 @@ P0 Socle (tests, PostgreSQL, comptes, client IA commun)
 
 ---
 
-## 7. Décisions à valider
+## 7. Décisions
 
-| ID | Décision | Options | Recommandation | Bloque |
-|---|---|---|---|---|
-| **D-01** | Source de profils après le 01/01/2027 | (a) API SERP tierce payante (Brave Search API ou équivalent), si ses conditions autorisent ce cas d'usage ; (b) sources apportées par l'utilisateur : ajout manuel par URL, import du fichier `Connections.csv` de son **propre export de données LinkedIn**, import CSV ; (c) arrêt de la recherche de profils | **(b) en priorité**, sûre et conforme, avec (a) en option après lecture de ses conditions. Interface `FournisseurProfils` pour en changer sans toucher au reste. | P1 |
-| **D-02** | Base de données | SQLite (actuel) ; PostgreSQL | **PostgreSQL** pour le multi-utilisateur. SQLite reste possible en développement si les migrations le permettent. | P0 |
-| **D-03** | Authentification | bibliothèque open source (Better Auth, Auth.js…) ; sessions maison (argon2 + cookie httpOnly) ; service hébergé | Bibliothèque open source compatible Express et Prisma, choisie au lot `L0.4` après vérification de sa licence et de sa maintenance | P0 |
-| **D-04** | Hébergement | VPS + Docker Compose ; PaaS ; mixte | Étudié en P8 avec la Skill `deployment-devops-advisor`. En attendant : Docker Compose local. | P8 |
-| **D-05** | Intégration de la Skill CV | (a) service privé Python dans un dépôt séparé, porté sous Linux (Chromium headless à la place de WebKit, recadrage sans Vision) ; (b) service sur une machine macOS ; (c) rendre `job-automation-` privé et y copier la Skill | **(a)**, qui garde la licence intacte et passe à l'échelle. Le portage est un lot à part (`L3.1`). | P3 |
-| **D-06** | Avenir de n8n | garder n8n ; déplacer peu à peu les workflows dans le backend | Garder n8n pour le visuel et les ressources. Le scraper passe derrière l'interface `FournisseurProfils` du backend (`L1.2`) ; la voie n8n reste disponible tant que la parité n'est pas prouvée par les tests. | P1 |
-| **D-07** | Nom du produit | « LinkedAI » (interface) ; « Job Automation » (dépôt) ; autre | À trancher avant P8 : nom de domaine, marque, vérification de disponibilité. | P8 |
-| **D-08** | Visibilité du dépôt | public ; privé | Privé avant la commercialisation, ou séparer le cœur commercial. Ne pas changer sans instruction explicite. | P3, P8 |
-| **D-09** | Marché et langues au lancement | Maroc + France, français d'abord ; anglais ensuite | Français d'abord. Interface prête pour l'anglais (la Skill CV gère déjà `fr` et `en`). | P6 |
-| **D-10** | Paiement | Stripe ; marchand de référence (Paddle, Lemon Squeezy) ; paiement local | À étudier en P8 : disponibilité réelle depuis le Maroc (non vérifiée ici), fiscalité. | P8 |
-| **D-11** | Données personnelles de tiers (profils) | conservation limitée + suppression ; pas de conservation | Durée de conservation, droit d'opposition, registre. Avis juridique avant P8 (RGPD pour l'UE, loi 09-08 et CNDP au Maroc). | P1, P8 |
+Décisions prises par le porteur du projet le **29/10/2026**. Une décision ne se rouvre que par une nouvelle instruction explicite, notée ici avec sa date.
+
+### 7.1 Décisions prises
+
+| ID | Sujet | Décision | Conséquences dans le plan |
+|---|---|---|---|
+| **D-01** | Source de profils après le 01/01/2027 | **Un service de recherche web payant** (API de résultats de recherche), branché sur le backend. | `L1.4` choisit le fournisseur **après lecture de ses conditions d'utilisation** (Brave Search API ou équivalent) et de son prix. Un budget mensuel plafonné est réglé chez le fournisseur. L'interface `FournisseurProfils` (`L1.2`) permet de changer de fournisseur sans toucher au reste. L'ajout manuel et l'import CSV ne sont pas développés. |
+| **D-02** | Base de données | **PostgreSQL.** | `L0.3`. SQLite n'est plus utilisé, y compris en développement : PostgreSQL tourne dans Docker. |
+| **D-03** | Authentification | **Bibliothèque open source compatible Express et Prisma.** | Le choix précis (Better Auth, Auth.js ou autre) se fait au début de `L0.4` : licence, maintenance récente, adaptateur Prisma, sessions par cookie. Le résultat est noté ici. |
+| **D-04** | Hébergement | **Reporté** avec la Phase 8. | En attendant : tout tourne en local avec Docker Compose ; démo par tunnel (`docs/demo.md`). |
+| **D-05** | Intégration de la Skill CV | **Copier la Skill dans ce dépôt**, une fois le dépôt passé en privé. | `L3.1` : copie dans `services/cv/`, appelée par le backend. La Skill tourne sur **macOS** (WebKit, Vision) : le backend local sur ton Mac l'exécute telle quelle. Le portage sous Linux n'est nécessaire que pour un hébergement serveur : il est rangé en Phase 8 (`L8.2`). |
+| **D-06** | Avenir de n8n | **Le scraper passe par le backend ; n8n reste en secours.** | `L1.2` et `L1.4` : le backend appelle le fournisseur payant. Si ce fournisseur n'est pas configuré ou échoue, le backend bascule sur le webhook n8n `scraper`. Le visuel et les ressources restent dans n8n. |
+| **D-07** | Nom du produit | **Reporté** avec la Phase 8. | L'interface garde « LinkedAI ». |
+| **D-08** | Visibilité du dépôt | **Privé**, et au plus tard **avant la copie de la Skill CV** (`L3.1`), car D-05 l'impose. | Le changement de visibilité se fait **sur ton instruction explicite**, au moment voulu ; il n'est pas lancé automatiquement. Conséquence : sur un compte GitHub gratuit, GitHub Pages ne publie pas un dépôt privé (à vérifier selon ton offre) ; la démo passe alors par Vercel (`docs/demo.md`). L'ancienne clé Google de l'historique cesse d'être publique, mais reste à restreindre. |
+| **D-09** | Langue | **Français uniquement.** | Interface et contenus générés (posts, lettres, CV) en français. La Skill CV sait produire de l'anglais : l'option n'est pas proposée à l'écran. Pas de traduction de l'interface prévue. |
+| **D-10** | Paiement | **Reporté** avec la Phase 8. | — |
+| **D-11** | Profils scrapés (données de tiers) | **Pas de suppression automatique : seul l'utilisateur supprime ses profils.** | `L1.7` : suppression d'un profil, d'une sélection ou de tous, avec confirmation. Pas de purge planifiée. La suppression du compte efface aussi ses profils (`L6.4`). Le risque juridique d'une conservation sans durée est suivi en `R-11` et sera revu avant toute commercialisation. |
+
+### 7.2 Décisions encore ouvertes
+
+| ID | Sujet | Quand |
+|---|---|---|
+| D-01-bis | Quel fournisseur de recherche payant, et quel budget mensuel | début de `L1.4` (au plus tard mi-décembre 2026) |
+| D-03-bis | Quelle bibliothèque d'authentification précise | début de `L0.4` |
+| D-12 | Statuts exacts des candidatures | début de `L5.1` |
+| D-04, D-07, D-10 | Hébergement, nom, paiement | à la reprise de la Phase 8 |
 
 ---
 
@@ -615,6 +636,47 @@ Un lot est terminé quand :
 - **`TS-ISOLATION`** (à partir de `L0.5`) : deux comptes A et B. Pour chaque ressource, B ne peut ni lire, ni modifier, ni supprimer une donnée de A, que ce soit par l'interface, par l'API avec l'identifiant de A, ou par une énumération d'identifiants.
 - **Campagne de phase** : à la fin de chaque phase, on rejoue toutes les suites, puis un parcours manuel complet, écrit dans `docs/recette/phase-N.md` avec les résultats réels (date, environnement, captures, anomalies).
 
+### 8.5 Démarrage : ordre des premiers lots
+
+**Contrainte de date** : Google Custom Search s'arrête le **1er janvier 2027**. Le scraper et son secours n8n en dépendent tous les deux. Le nouveau fournisseur doit donc être en service avant cette date, avec une marge : **objectif mi-décembre 2026**. C'est pourquoi `L1.2` et `L1.4` passent avant le reste de la Phase 0 : ils ne dépendent ni de la base ni des comptes.
+
+| Ordre | Lot | Pourquoi à ce rang | Ce qu'il faut de ta part |
+|---|---|---|---|
+| 1 | `L0.1` Outillage de tests et CI | Rien ne se refait sans filet | — |
+| 2 | `L0.2` Non-régression des parcours existants | Fige le comportement actuel avant de toucher au scraper | — |
+| 3 | `L1.2` Interface `FournisseurProfils` et normalisation | Prépare le changement de source ; le backend prend la main sur le scraper, n8n devient le secours | — |
+| 4 | `L1.4` Fournisseur payant, n8n en secours | **Daté : avant le 01/01/2027** | `D-01-bis` : choix du fournisseur et budget mensuel, sur la base du comparatif fait au début du lot ; création de la clé |
+| 5 | `L0.3` PostgreSQL | Socle des données | Docker Desktop lancé |
+| 6 | `L0.4` Comptes et sessions | Rattacher les données à un utilisateur | `D-03-bis` : valider la bibliothèque proposée |
+| 7 | `L0.5` → `L0.6` → `L0.7` | Isolation, coût IA, reprise des données du navigateur | — |
+| 8 | `L1.1` → `L1.3` → `L1.5` → `L1.6` → `L1.7` | Fin de la Phase 1 : persistance serveur, doublons, fiche, erreurs, suppression | — |
+| 9 | Phase 2, puis Phase 3 | Offres, puis CV | **Avant `L3.1`** : passer le dépôt en privé (sur ton instruction) et préparer la démo Vercel (`R-12`) |
+
+Les Phases 4 à 7 suivent l'ordre de la section 6.3. La Phase 8 est reportée.
+
+### 8.6 Avant le premier lot
+
+- [x] Décisions prises et notées (section 7).
+- [ ] Partir d'un état vert sur `main` : `npm run lint --prefix frontend`, `npm run build --prefix frontend`, `node .claude/skills/cloneme/scripts/verifier-synchro.mjs frontend`.
+- [ ] Marquer l'état de départ avec une étiquette git, pour pouvoir y revenir : `git tag avant-saas` (à lancer par toi).
+- [ ] Travailler sur une branche par phase, par exemple `feat/phase-0-socle`, fusionnée dans `main` à la fin de la campagne de phase.
+- [ ] Docker Desktop lancé (n8n aujourd'hui, PostgreSQL à partir de `L0.3`).
+- [ ] Un commit par lot, au libellé PayPlan, puis `git commit --allow-empty -m "livraison"` à la fin de chaque phase.
+
+### 8.7 Premier lot prêt à lancer : `L0.1`
+
+1. Ajouter Vitest et Testing Library au front, Vitest et Supertest au backend, Playwright à la racine (`e2e/`).
+2. Rendre l'application Express importable sans démarrer le serveur : séparer `app` (dans `backend/src/app.js`) de `listen` (dans `index.js`). C'est la seule modification du code applicatif, sans changement de comportement.
+3. Écrire les premiers tests :
+   - `frontend/src/lib/stats.test.js` ;
+   - `backend/test/rateLimit.test.js` ;
+   - `backend/test/posts.test.js`, avec OpenRouter simulé.
+4. Ajouter les scripts `test` et `test:e2e`, et le lint au backend.
+5. Créer `.github/workflows/ci.yml` : lint, tests, build à chaque push et chaque PR.
+6. Vérifier que la CI échoue sur un test volontairement faux, puis retirer ce test.
+
+Fin du lot : critères de `L0.1` cochés, section « Tests » du README écrite, commit au libellé du barème PayPlan.
+
 ---
 
 ## Phase 0 — Socle technique
@@ -631,6 +693,8 @@ Un lot est terminé quand :
 **Pourquoi avant le scraping** : la Phase 1 demande de tester la persistance « après déconnexion et reconnexion ». Cela suppose des comptes, et une refonte de la persistance sans tests de non-régression serait risquée.
 
 ### L0.1 — Outillage de tests et CI
+
+> **État : ✅ livré le 29/10/2026** sur la branche `feat/phase-0-socle`. 19 tests Vitest (backend 9, front 10) et 1 test Playwright passent en local ; un test volontairement faux fait bien échouer `npm test`. Reste à voir la CI tourner sur GitHub, au premier push de la branche.
 
 | Rubrique | Contenu |
 |---|---|
@@ -768,10 +832,10 @@ Un lot est terminé quand :
 | Rubrique | Contenu |
 |---|---|
 | Analyser avant | Workflow `linkedin-scraper-webhook.json` (découpage du titre), `findProfiles` dans `Scraper.jsx`, `routes/n8n.js`. **Relever un échantillon réel** de réponses Google pour vérifier l'hypothèse C8. |
-| Fichiers | `backend/src/profils/fournisseurs/` (`n8nGoogle.js`, puis ceux choisis en `D-01`) ; `backend/src/profils/normaliser.js`. |
-| Modifications | Une interface `rechercher({ requete, lieu, pages }) → ProfilBrut[]`. Une normalisation unique produit `{ urlNormalisee, nom, poste, entreprise?, lieu?, extrait, image, source }` : URL sans paramètres ni barre finale, suffixe « \| LinkedIn » retiré, poste et entreprise séparés quand c'est possible. Validation par schéma (zod ou équivalent) : un profil sans URL valide est rejeté et compté. |
-| À préserver | La voie n8n actuelle (premier fournisseur) et le webhook réglable dans Paramètres. |
-| Dépendances | L1.1, `D-01`, `D-06`. |
+| Fichiers | `backend/src/profils/fournisseurs/` (`n8n.js` d'abord, puis le fournisseur payant en `L1.4`) ; `backend/src/profils/normaliser.js` ; `backend/src/profils/routes.js` (`POST /api/profils/rechercher`) ; `Scraper.jsx` (appelle cette route au lieu du relais n8n). |
+| Modifications | Lot **avancé** (section 8.5) : il ne dépend pas de la base, les profils normalisés sont renvoyés au front qui les garde comme aujourd'hui, jusqu'à `L1.1`. Une interface `rechercher({ requete, lieu, pages }) → ProfilBrut[]`. Une normalisation unique produit `{ urlNormalisee, nom, poste, entreprise?, lieu?, extrait, image, source }` : URL sans paramètres ni barre finale, suffixe « \| LinkedIn » retiré, poste et entreprise séparés quand c'est possible. Validation par schéma (zod ou équivalent) : un profil sans URL valide est rejeté et compté. |
+| À préserver | La voie n8n actuelle (premier fournisseur, puis secours) et le webhook réglable dans Paramètres. |
+| Dépendances | L0.1, L0.2 (`D-06` prise). |
 | Critères d'acceptation | Les profils enregistrés ont tous le même schéma. Le nombre de rejetés est renvoyé et affiché. |
 | TU | `normaliser` sur un jeu de titres réels anonymisés : avec ou sans entreprise, avec ou sans suffixe, caractères accentués, URL avec `?trk=` ou pays (`ma.linkedin.com`). |
 | TI | Fournisseur n8n simulé → profils normalisés en base ; réponse mal formée → erreur claire, rien d'écrit. |
@@ -793,20 +857,24 @@ Un lot est terminé quand :
 | TS | Le dédoublonnage ne fuit pas entre comptes : la réponse à B ne dit pas que A a déjà ce profil. |
 | Livrables | Service, messages de résultat. |
 
-### L1.4 — Sources conformes après Google Custom Search
+### L1.4 — Fournisseur de recherche payant, n8n en secours
+
+Lot **avancé et daté** : en service **avant le 1er janvier 2027** (section 8.5).
 
 | Rubrique | Contenu |
 |---|---|
-| Analyser avant | Conditions d'utilisation de chaque source retenue en `D-01`. Format du fichier `Connections.csv` de l'export de données LinkedIn (à vérifier sur un export réel de l'utilisateur). |
-| Fichiers | `profils/fournisseurs/importCsv.js`, `ajoutManuel.js`, éventuellement `serpApi.js` ; écran d'import. |
-| Modifications | (1) Ajout manuel d'un profil par URL et champs saisis. (2) Import CSV (export LinkedIn de l'utilisateur, ou CSV générique avec correspondance des colonnes). (3) Option : fournisseur SERP tiers, seulement si ses conditions le permettent. Message clair à l'écran quand Google Custom Search n'est plus disponible. |
-| À préserver | Les profils déjà enregistrés et la recherche n8n tant qu'elle répond. |
-| Dépendances | L1.2, L1.3, `D-01`, `D-11`. |
-| Critères d'acceptation | Le 01/01/2027, la page Profils reste utilisable : ajout manuel et import fonctionnent, la recherche Google affiche un message explicite au lieu d'une erreur technique. |
-| TU | Analyse CSV : séparateur `,` ou `;`, encodage UTF-8 avec ou sans BOM, colonnes manquantes, lignes vides. |
-| TI | Import de 500 lignes → nombres exacts ; un fournisseur Google qui renvoie 403 ou 410 → message « source indisponible ». |
-| TF | Importer un CSV, retrouver les profils, les filtrer. |
-| Livrables | Fournisseurs, écran d'import, `docs/n8n.md` et `docs/sources.md` mis à jour. |
+| Analyser avant | Pour 2 ou 3 fournisseurs d'API de résultats de recherche (Brave Search API ou équivalents) : conditions d'utilisation (ce cas d'usage est-il autorisé, peut-on garder les résultats), prix, quotas, qualité sur 5 requêtes réelles du type « ingénieur cloud maroc site:linkedin.com/in ». Résultat écrit dans `docs/sources.md`, puis choix noté en `D-01-bis`. |
+| Fichiers | `backend/src/profils/fournisseurs/<fournisseur>.js` ; `backend/src/profils/fournisseurs/index.js` (ordre : payant, puis n8n) ; clé `RECHERCHE_API_KEY` dans `backend/.env` et `backend/.env.example` ; `docs/n8n.md`, `docs/architecture.md`. |
+| Modifications | Le backend interroge le fournisseur payant, page par page, avec le même plafond qu'aujourd'hui (10 pages). Si la clé est absente ou si le fournisseur échoue (réseau, 5xx, quota), il bascule sur le webhook n8n `scraper` et le signale dans la réponse (`source: "n8n"`). Si les deux échouent, message clair à l'écran. Chaque recherche est comptée (pages appelées) pour suivre le budget. |
+| À préserver | Le format de profil normalisé de `L1.2` ; le workflow n8n et le webhook réglable dans Paramètres ; l'export CSV. |
+| Dépendances | L1.2, `D-01-bis`. |
+| Critères d'acceptation | Avec la clé : une recherche renvoie des profils normalisés sans passer par n8n. Sans la clé ou fournisseur en panne : n8n prend le relais, et l'écran indique la source utilisée. Les deux en panne : un message en français, pas d'erreur technique. |
+| TU | Correspondance réponse du fournisseur → `ProfilBrut` ; arrêt de la pagination quand il n'y a plus de résultat ; plafond de pages. |
+| TI | Fournisseur simulé : réponse normale, 401 (clé fausse), 429 (quota), 500, délai → bascule sur n8n simulé ; les deux simulés en panne → 503 avec message. |
+| TF | Playwright : recherche avec fournisseur simulé → profils affichés, source indiquée ; fournisseur coupé → profils venant de n8n. |
+| TNR | Le webhook n8n réglé dans Paramètres ; l'export CSV ; `TNR-GLOBAL`. |
+| TS | La clé ne sort jamais du backend (absente du bundle, vérifiée par recherche dans `dist/`) ; la limite d'appels s'applique à la route. |
+| Livrables | Fournisseur, bascule, `docs/sources.md` (comparatif et choix), documentation mise à jour. |
 
 ### L1.5 — Fiche profil et liste détaillée
 
@@ -830,7 +898,7 @@ Un lot est terminé quand :
 |---|---|
 | Analyser avant | Les messages actuels de `Scraper.jsx` (sans accents, techniques). |
 | Fichiers | `Scraper.jsx` (ou page Profils renommée), composants d'état. |
-| Modifications | Squelettes de chargement ; progression par page ; annulation d'une recherche longue ; messages en français correct et compréhensibles (quota épuisé, source indisponible, réseau, délai). Le profil incomplet est affiché avec « non renseigné ». **« Vider » demande une confirmation**, avec une suppression par sélection à la place d'une suppression totale. |
+| Modifications | Squelettes de chargement ; progression par page ; annulation d'une recherche longue ; messages en français correct et compréhensibles (quota épuisé, source indisponible, réseau, délai). Le profil incomplet est affiché avec « non renseigné ». **« Vider » demande une confirmation** (suppressions détaillées en `L1.7`). |
 | À préserver | Les notifications `react-hot-toast` et le `TopLoader`. |
 | Dépendances | L1.5. |
 | Critères d'acceptation | Chaque erreur simulée (429, 403, 500, délai, réseau) affiche un message différent et compréhensible. Aucun texte technique brut à l'écran. |
@@ -839,24 +907,28 @@ Un lot est terminé quand :
 | TNR | `TNR-GLOBAL`. |
 | Livrables | États, messages, recette. |
 
-### L1.7 — Conservation et droits des personnes (profils de tiers)
+### L1.7 — Suppression des profils par l'utilisateur
+
+Décision `D-11` : **aucune suppression automatique**. Seul l'utilisateur supprime ses profils.
 
 | Rubrique | Contenu |
 |---|---|
-| Analyser avant | `D-11`. Les données réellement gardées par profil. |
-| Fichiers | Tâche planifiée de purge, réglage de durée, `docs/donnees-personnelles.md`. |
-| Modifications | Durée de conservation réglable, avec une valeur par défaut à décider. Purge automatique. Suppression définitive d'un profil à la demande. Pas d'enrichissement à partir de sources non autorisées. |
-| Dépendances | L1.1, `D-11`. |
-| Critères d'acceptation | Un profil plus ancien que la durée est supprimé par la tâche, et la purge est journalisée. |
-| TU | Sélection des profils à purger (bornes de dates). |
-| TI | Lancer la tâche sur une base préparée → nombres exacts. |
-| TS | La purge d'un utilisateur ne touche pas les profils d'un autre. |
-| Livrables | Tâche, documentation. |
+| Analyser avant | Bouton « Vider » actuel de `Scraper.jsx` ; route `DELETE` de `L1.1` ; liens avec les offres (`L2.5`). |
+| Fichiers | `profils/routes.js` (`DELETE /api/profils/:id`, `POST /api/profils/supprimer` pour une sélection, `DELETE /api/profils` pour tout) ; liste et fiche profil. |
+| Modifications | Supprimer un profil depuis sa fiche ; cocher plusieurs profils et les supprimer ; tout supprimer, avec une confirmation qui rappelle le nombre de profils concernés. La suppression est définitive en base. Aucune tâche planifiée de purge. |
+| À préserver | Les offres liées à un profil supprimé (seul le lien disparaît). |
+| Dépendances | L1.1, L1.5. |
+| Critères d'acceptation | Après suppression et actualisation, les profils supprimés n'apparaissent plus nulle part (liste, recherche globale, dashboard, export CSV). Aucun profil ne disparaît sans action de l'utilisateur. |
+| TU | Composant de confirmation (nombre affiché, annulation). |
+| TI | Suppression d'un, d'une sélection, de tous → comptes exacts en base ; sélection contenant un identifiant d'un autre utilisateur → cet identifiant est ignoré. |
+| TF | Sélectionner 3 profils, supprimer, actualiser : 3 de moins. |
+| TS | Un utilisateur ne peut supprimer que ses profils (`TS-ISOLATION`). |
+| Livrables | Routes, interface, note dans `docs/architecture.md`. |
 
 **Campagne de fin de Phase 1** :
 
 - `TNR-GLOBAL` et `TS-ISOLATION` (profils) ;
-- test « 01/01/2027 » : fournisseur Google forcé hors service ;
+- test de bascule : fournisseur payant coupé → n8n prend le relais ; les deux coupés → message clair ;
 - test de persistance : actualisation, autre navigateur, déconnexion et reconnexion ;
 - recette `docs/recette/phase-1.md`.
 
@@ -945,21 +1017,24 @@ Un lot est terminé quand :
 
 **État initial** : rien dans l'application. La Skill `cv-ats` (3.8) est privée, propriétaire, sous macOS, et sans adaptation à une offre.
 
-### L3.1 — Service CV portable (dépôt privé)
+### L3.1 — Skill CV copiée dans le dépôt (privé)
+
+Décisions `D-05` et `D-08` : la Skill est copiée dans ce dépôt, **après** son passage en privé.
 
 | Rubrique | Contenu |
 |---|---|
-| Analyser avant | `scripts/cv.py`, `rendu.py`, `verifications.py`, `domaines.py`, `cvtool.swift` (fonctions : PDF, texte, aperçus, recadrage) ; `tests/lancer_tests.py` ; licence (`D-05`, `D-08`). |
-| Fichiers | **Dépôt privé séparé** (ex. `StackLLM/cv-service`) : couche HTTP (FastAPI ou équivalent), `Dockerfile` Linux. |
-| Modifications | Remplacer chaque fonction de `cvtool` par un équivalent Linux : PDF A4 par Chromium headless (Playwright) ; texte par pdfplumber ou pdftotext ; aperçus PNG par rendu de page ; recadrage du visage par une bibliothèque libre (OpenCV) **ou** un recadrage manuel par l'utilisateur en premier temps. Garder `rendu.py`, `verifications.py`, `domaines.py`, `cv.css`, `ajustement.js`. API : `POST /construire { cv, themes } → { pdfs, rapport }`, `POST /detecter`. |
-| À préserver | Le gabarit V4, les 3 thèmes, les règles de photo par marché, les contrôles, la police Geist (licence OFL). |
-| Dépendances | `D-05`. |
-| Critères d'acceptation | Les 6 profils de `tests/` passent la chaîne sous Linux. Les contrôles ATS sont au même niveau que sur macOS. Écart visuel jugé acceptable sur les aperçus (comparaison côte à côte dans la recette). |
-| TU | Tests existants de la Skill ; chaque remplaçant de `cvtool` séparément. |
-| TI | Appel HTTP avec chaque profil de test → 3 PDF + rapport sans erreur. |
-| TNR | Mêmes sorties de contrôle (`rapport.md`) entre macOS et Linux pour les 6 profils, différences listées. |
-| TS | Le service n'est joignable que par le backend (réseau interne). Taille d'entrée limitée. Pas d'exécution de contenu fourni. |
-| Livrables | Dépôt privé, image Docker, rapport de comparaison macOS/Linux. |
+| Préalable bloquant | Le dépôt `job-automation-` est **privé** (vérifié par `gh repo view --json visibility`). Le changement de visibilité se fait **sur ton instruction explicite**. Tant qu'il est public, ce lot ne démarre pas. |
+| Analyser avant | `scripts/cv.py`, `rendu.py`, `verifications.py`, `domaines.py`, `cvtool.swift` ; `tests/lancer_tests.py` ; version de la Skill copiée (`CHANGELOG.md`, actuellement `0.1.0`) ; effet du passage en privé sur GitHub Pages (`R-12`). |
+| Fichiers | `services/cv/` : copie de la Skill (scripts, assets, références, tests, `LICENSE`, `CHANGELOG.md`), sans le binaire `scripts/.bin/` (recompilé au premier lancement, ajouté au `.gitignore`) ; `services/cv/VERSION` (version et commit d'origine de la Skill) ; `backend/src/documents/cvService.js`. |
+| Modifications | Le backend appelle la Skill en sous-processus : `python3 services/cv/scripts/cv.py construire <cv.json> --sortie <dossier temporaire>`. Il lit les 3 PDF et `_controle/rapport.md`, puis renvoie le résultat ; le code de sortie 1 (erreur bloquante) devient une erreur lisible. Exécution sur **macOS** (ton Mac), comme la Skill l'exige. Le portage sous Linux est rangé en Phase 8 (`L8.2`). |
+| À préserver | La Skill sans modification de fond : gabarit V4, 3 thèmes, règles de photo par marché, contrôles, police Geist (licence OFL). Une mise à jour de la Skill se fait en recopiant une nouvelle version et en notant le changement dans `services/cv/VERSION`. |
+| Dépendances | P0, `D-08` exécutée. |
+| Critères d'acceptation | `python3 services/cv/tests/lancer_tests.py` passe depuis le dépôt. Un appel du backend avec un profil de test renvoie 3 PDF et un rapport sans erreur. |
+| TU | `cvService` : construction de la commande, lecture du rapport, traduction du code de sortie. |
+| TI | Backend → Skill réelle avec les 6 profils de test ; profil invalide (sans e-mail) → erreur lisible ; dossiers temporaires supprimés après usage. |
+| TNR | Mêmes rapports de contrôle que la Skill d'origine pour les 6 profils. |
+| TS | Le chemin de sortie est créé par le backend (jamais fourni par l'utilisateur) ; pas d'injection dans la commande (arguments passés en liste, sans shell) ; taille du JSON limitée. |
+| Livrables | `services/cv/`, `cvService.js`, section « CV » dans le README. |
 
 ### L3.2 — Profil professionnel de l'utilisateur
 
@@ -982,7 +1057,7 @@ Un lot est terminé quand :
 | Rubrique | Contenu |
 |---|---|
 | Fichiers | `backend/src/documents/cv.js` ; stockage des fichiers ; page `/cv`. |
-| Modifications | Profil pro → `cv.json` (réglages langue, marché, domaine, niveau) → service CV → 3 PDF enregistrés comme `Document` (type `cv`, version 1). Le rapport de contrôle est résumé à l'utilisateur : erreurs bloquantes, avertissements, points à confirmer. Une erreur bloquante empêche la livraison. |
+| Modifications | Profil pro → `cv.json` (langue `fr` fixée par `D-09`, marché, domaine, niveau) → Skill CV (`L3.1`) → 3 PDF enregistrés comme `Document` (type `cv`, version 1). Le rapport de contrôle est résumé à l'utilisateur : erreurs bloquantes, avertissements, points à confirmer. Une erreur bloquante empêche la livraison. |
 | Dépendances | L3.1, L3.2. |
 | Critères d'acceptation | Le PDF téléchargé est celui qui a passé les contrôles. Le texte extrait du PDF contient nom, e-mail, postes et dates. |
 | TI | Bout en bout avec service CV réel en conteneur de test, IA simulée. |
@@ -1038,7 +1113,7 @@ Un lot est terminé quand :
 
 ### L4.2 — Paramètres de génération communs
 
-| Modifications | Paramètres partagés par posts, lettres et CV : langue, ton, longueur, niveau de formalité, signature, mots à éviter. Valeurs par défaut dans `Preference`, modifiables à chaque génération. |
+| Modifications | Paramètres partagés par posts, lettres et CV (tous en français, `D-09`) : ton, longueur, niveau de formalité, signature, mots à éviter. Valeurs par défaut dans `Preference`, modifiables à chaque génération. |
 |---|---|
 | À préserver | Le ton par défaut existant (`settings.defaultTone`) : il est repris dans `Preference`. |
 | Dépendances | P0. |
@@ -1149,7 +1224,7 @@ Un lot est terminé quand :
 
 ### L6.2 — Préférences et espace personnel
 
-| Modifications | Page Paramètres étendue : identité affichée, langue de l'interface (`D-09`), marché, préférences de recherche (métiers, lieux, télétravail), réglages de génération (L4.2), notifications. |
+| Modifications | Page Paramètres étendue : identité affichée, marché, préférences de recherche (métiers, lieux, télétravail), réglages de génération (L4.2), notifications. |
 |---|---|
 | À préserver | Les réglages actuels (ton par défaut, webhook scraper facultatif). |
 | Tests | TI (enregistrement et relecture) ; TNR (Paramètres actuels). |
@@ -1231,7 +1306,9 @@ Chaque lot suit le même gabarit et les mêmes types de tests que les phases pr�
 
 ---
 
-## Phase 8 — Préparation à la commercialisation
+## Phase 8 — Préparation à la commercialisation (reportée)
+
+> **Reportée le 29/10/2026.** Cette phase n'est pas planifiée pour le moment. Son contenu est gardé pour la reprise, avec les décisions qui l'attendent : `D-04` (hébergement), `D-07` (nom), `D-10` (paiement), et la revue du risque `R-11` (conservation des profils de tiers).
 
 **Objectif** : un service fiable, sécurisé, supervisé, sauvegardé et juridiquement prêt, validé par une recette complète avant toute ouverture payante.
 
@@ -1257,7 +1334,13 @@ Chaque constat critique ou élevé est corrigé et retesté.
 - migrations automatiques et réversibles ;
 - variables d'environnement documentées ;
 - service CV et n8n sur réseau privé ;
-- retour arrière documenté et testé.
+- retour arrière documenté et testé ;
+- **portage de la Skill CV sous Linux**, nécessaire dès qu'elle tourne sur un serveur :
+  - PDF A4 par Chromium headless (Playwright) à la place de WebKit ;
+  - texte par pdfplumber ou pdftotext ;
+  - aperçus PNG par rendu de page ;
+  - recadrage du visage par OpenCV, ou recadrage manuel ;
+  - **validation** : les 6 profils de `services/cv/tests/` donnent les mêmes rapports de contrôle que sur macOS, et les aperçus sont comparés côte à côte (`R-04`).
 
 ### L8.3 — Supervision et journaux
 
@@ -1301,16 +1384,19 @@ Chaque constat critique ou élevé est corrigé et retesté.
 
 | ID | Risque | Probabilité | Impact | Réponse |
 |---|---|---|---|---|
-| R-01 | Arrêt de Google Custom Search au 01/01/2027 | **Certaine** (annoncée) | Le scraper actuel s'arrête | `D-01`, `L1.4` avant la date |
-| R-02 | Action de LinkedIn contre l'extraction de profils | Moyenne | Juridique, réputation | Sources apportées par l'utilisateur ; aucun contournement ; `D-11` |
-| R-03 | Publication involontaire du code propriétaire de la Skill CV | Moyenne si on la copie dans ce dépôt | Licence | Service dans un dépôt privé (`D-05`) |
-| R-04 | Rendu du CV sous Linux différent de macOS | Moyenne | Qualité du CV | Comparaison des 6 profils (`L3.1`) |
+| R-01 | Arrêt de Google Custom Search au 01/01/2027 | **Certaine** (annoncée) | Le scraper actuel et son secours n8n (qui utilise aussi Google) s'arrêtent | Fournisseur payant (`D-01`) en service avant la date : `L1.2` et `L1.4` avancés (section 8.5) |
+| R-02 | Action de LinkedIn contre l'extraction de profils | Moyenne | Juridique, réputation | Seulement des résultats de recherche publics, via un fournisseur dont les conditions autorisent l'usage ; aucun contournement |
+| R-03 | Publication du code propriétaire de la Skill CV | Élevée si la copie précède le passage en privé | Licence | Préalable bloquant de `L3.1` : dépôt privé vérifié avant la copie (`D-08`) |
+| R-04 | Rendu du CV sous Linux différent de macOS | Moyenne, seulement à l'hébergement | Qualité du CV | Portage et comparaison des 6 profils en `L8.2` |
 | R-05 | Contenu inventé par l'IA (CV, lettre) | Moyenne | Confiance, réputation | Contrôle des faits bloquant (`L3.2`, `L3.4`, `L4.4`) |
 | R-06 | Fuite de données entre utilisateurs | Faible si testée | Critique | `TS-ISOLATION` à chaque lot, `L6.1` |
 | R-07 | Coût IA non maîtrisé | Moyenne | Financier | `UsageIA` (`L0.6`), quotas (`L6.5`), plafond de dépense de la clé |
 | R-08 | Ancienne clé Google dans l'historique public | Avérée | Abus de quota | La restreindre ou la remplacer (déjà recommandé) |
 | R-09 | Refonte de la persistance sans filet | Élevée sans P0 | Régressions | `L0.1`, `L0.2` d'abord |
 | R-10 | Conditions des sources d'offres mal respectées | Moyenne | Coupure d'accès | Relecture des conditions en `L2.3`, attribution affichée |
+| R-11 | Profils de tiers conservés sans durée limite (`D-11`) | Moyenne à la commercialisation | Juridique (RGPD, loi 09-08) | Risque accepté pour l'usage actuel ; suppression complète par l'utilisateur (`L1.7`) ; revue avant la Phase 8 |
+| R-12 | Démo GitHub Pages coupée par le passage en privé | Probable sur un compte gratuit (à vérifier) | Démo | Démo par Vercel (`docs/demo.md`), à préparer avant `L3.1` |
+| R-13 | Coût du fournisseur de recherche payant | Moyenne | Financier | Budget plafonné chez le fournisseur ; comptage des pages (`L1.4`) ; plafond de 10 pages par recherche |
 
 ---
 
