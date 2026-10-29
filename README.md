@@ -59,11 +59,14 @@ npm run dev
 ```text
 .
 ├── backend/               API Express : génération des posts, relais n8n, base SQLite
-│   ├── src/index.js       point d'entrée, CORS, limite d'appels
+│   ├── src/app.js         application : CORS, limite d'appels, routes
+│   ├── src/index.js       point d'entrée : charge .env, ouvre le port
 │   ├── src/routes/        posts.js (OpenRouter + historique), n8n.js (relais)
 │   ├── src/lib/           prisma.js, rateLimit.js
 │   ├── prisma/            schéma et migration SQLite
-│   └── scripts/           init-db.js, list-post-logs.js
+│   ├── scripts/           init-db.js, list-post-logs.js
+│   └── test/              tests Vitest + Supertest
+├── e2e/                   tests de bout en bout (Playwright)
 ├── frontend/              application React
 │   ├── src/pages/         Dashboard, Posts, Scraper, Lettre, Offres, Paramètres, 404
 │   ├── src/components/    ui, layout, dashboard, charts, posts, scraper, lightswind
@@ -135,10 +138,27 @@ Règle : aucune couleur ni durée en dur dans un composant ; tout passe par `tok
 ## Qualité
 
 ```bash
-npm run lint --prefix frontend                                     # ESLint
+npm run lint --prefix frontend                                     # ESLint du front
+npm run lint --prefix backend                                      # ESLint du backend
 npm run build --prefix frontend                                    # build de production
 node .claude/skills/cloneme/scripts/verifier-synchro.mjs frontend  # design.md/palette.md ↔ code
 ```
+
+## Tests
+
+Aucun test n'appelle OpenRouter, n8n ou Google : ces services sont simulés.
+
+| Commande (depuis la racine) | Ce qu'elle lance | Où sont les tests |
+|---|---|---|
+| `npm test` | tests unitaires et d'intégration, backend puis front (Vitest) | `backend/test/`, `frontend/src/**/*.test.{js,jsx}` |
+| `npm run test:e2e` | tests de bout en bout dans Chromium (Playwright) ; démarre le front tout seul | `e2e/*.spec.js` |
+
+- Pendant le développement : `npm run test:watch --prefix frontend` (ou `--prefix backend`) relance les tests à chaque sauvegarde.
+- Avant le premier `test:e2e` sur une machine : `npx playwright install chromium`.
+- Si le port 3000 sert déjà (front lancé à la main) : `E2E_PORT=3100 npm run test:e2e`.
+- Le backend se teste sans ouvrir de port : `backend/src/app.js` construit l'application, `index.js` ne fait que la démarrer.
+
+La CI (`.github/workflows/ci.yml`) lance lint, tests, build, synchro du design et tests de bout en bout à chaque push et à chaque pull request. Le rapport Playwright est joint au run.
 
 ## Sécurité
 

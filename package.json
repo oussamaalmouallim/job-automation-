@@ -3,6 +3,11 @@
   "private": true,
   "scripts": {
     "dev": "bash scripts/dev.sh",
-    "n8n:reload": "bash scripts/n8n-reload.sh"
+    "n8n:reload": "bash scripts/n8n-reload.sh",
+    "test": "npm test --prefix backend && npm test --prefix frontend",
+    "test:e2e": "playwright test -c e2e/playwright.config.js"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1"
   }
 }

@@ -6,3 +6,9 @@ dist/
 .vercel/
 *.db
 *.db-journal
+
+# Tests (Vitest, Playwright)
+coverage/
+test-results/
+e2e/rapport/
+playwright-report/
