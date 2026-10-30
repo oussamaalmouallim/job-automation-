@@ -1,6 +1,17 @@
-# LinkedAI — Assistant IA pour LinkedIn et la recherche d'emploi
+# LinkedAI — Assistant IA pour la recherche d'emploi
 
-LinkedAI aide un ingénieur à soigner sa présence LinkedIn et sa recherche d'emploi :
+> **De l'offre à la candidature suivie, avec un CV ATS contrôlé et des contenus qui ne mentent pas.**
+
+Job Automation (nom d'interface : LinkedAI) veut devenir un **SaaS multi-utilisateur** qui accompagne la recherche d'emploi de bout en bout :
+
+1. trouver des profils et des offres ;
+2. générer un CV adapté à chaque offre ;
+3. écrire lettres et posts ;
+4. suivre les candidatures et sa progression.
+
+La vision complète est dans **[docs/vision.md](docs/vision.md)**, et le plan détaillé dans **[PLAN.md](PLAN.md)**.
+
+**Aujourd'hui**, l'app permet :
 
 - **Générateur de posts** : un post LinkedIn rédigé par l'IA à partir d'une description, d'un type et d'un ton.
 - **Ressources** : liens de documentation et conseils de publication adaptés au post.
@@ -9,7 +20,7 @@ LinkedAI aide un ingénieur à soigner sa présence LinkedIn et sa recherche d'e
 - **Dashboard** : activité, répartition des posts, derniers profils, actions rapides.
 - **Comptes** : inscription, connexion, mot de passe oublié ; toutes les pages demandent d'être connecté.
 
-Lettre de motivation et recherche d'offres sont prévues dans les prochaines phases (voir [Feuille de route](#feuille-de-route)).
+Offres d'emploi, CV adapté, lettres et suivi des candidatures arrivent dans les prochaines phases (voir [Feuille de route](#feuille-de-route)).
 
 **Stack** : React 18, Vite 5, Tailwind 3, framer-motion · Node.js, Express, Prisma, PostgreSQL · n8n (Docker) · DeepSeek via OpenRouter · Google Custom Search.
 
@@ -79,7 +90,7 @@ npm run dev
 │   └── design.md, palette.md, animation.md   références du design (voir plus bas)
 ├── n8n-workflows/         les 3 workflows à importer + modèle de fichier de clés
 ├── scripts/               dev.sh (tout lancer), n8n-reload.sh (recréer n8n)
-├── docs/                  architecture, n8n, démo
+├── docs/                  vision, architecture, n8n, sources de profils, démo
 └── .claude/skills/cloneme méthode de reprise de design utilisée pour l'interface
 ```
 
@@ -193,12 +204,41 @@ La CI (`.github/workflows/ci.yml`) lance lint, tests, build, synchro du design e
 
 ## Feuille de route
 
-- **Phase 1 — fait** : dashboard, générateur de posts, ressources, visuel IA, scraper n8n, historique en base, interface refaite.
-- **Phase 2** : authentification et rattachement des données à un utilisateur ; lettre de motivation adaptée par IA.
-- **Phase 3** : recherche d'offres multi-sources, exports.
-- **Phase 4** : abonnements, analytics, paiements.
+Le détail, avec les critères d'acceptation et les tests de chaque lot, est dans [PLAN.md](PLAN.md).
+
+| Phase | Contenu | État |
+|---|---|---|
+| 0 — Socle | tests et CI, PostgreSQL, comptes, isolation des données, coût IA par utilisateur | `L0.1` à `L0.5` ✅ · `L0.6`, `L0.7` à venir |
+| 1 — Scraping fiable | profils normalisés ✅, remplacement de Google (Serper, puis Brave) 🛠 clés à mettre, profils en base, fiche détaillée | en cours |
+| 2 — Offres d'emploi | saisie, sources autorisées (France Travail, Adzuna, Remotive), filtres | à venir |
+| 3 — CV et Skill ATS | profil professionnel, CV ATS contrôlé, adapté à une offre, versions | à venir |
+| 4 — Lettres et posts | lettres adaptées, posts et visuels enregistrés et versionnés | à venir |
+| 5 — Candidatures | suivi par statut, relances, indicateurs réels | à venir |
+| 6 — Multi-utilisateur | préférences, rôles, export et suppression de compte, quotas | à venir |
+| 7 — Assistant IA | adéquation profil/offre, prochaines actions | plus tard |
+| 8 — Commercialisation | hébergement, supervision, juridique, paiement | reportée |
+
+**Date à tenir** : Google Custom Search s'arrête le **1er janvier 2027**. Le remplacement (`L1.4`) doit être en service avant.
 
 Le plan d'origine (mai 2026) est gardé dans [docs/plan-initial.md](docs/plan-initial.md).
+
+## Dépôts et branches
+
+| Dépôt | Visibilité |
+|---|---|
+| [oussamaalmouallim/job-automation-](https://github.com/oussamaalmouallim/job-automation-) | public |
+| [StackLLM/job-automation](https://github.com/StackLLM/job-automation) | privé |
+
+- **`dev`** reçoit chaque version, dans les deux dépôts. La CI (lint, tests, build, tests de bout en bout) tourne à chaque push.
+- **`main`** ne reçoit le travail qu'une fois tout validé, dans les deux dépôts en même temps. Un push sur `main` publie aussi le front sur GitHub Pages.
+
+```bash
+git push origin dev
+```
+
+```bash
+git push stackllm dev
+```
 
 ---
 
