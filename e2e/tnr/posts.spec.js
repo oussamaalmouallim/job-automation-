@@ -38,7 +38,7 @@ test.describe('TNR 1 — génération d’un post', () => {
     await page.goto('./posts')
     await page.getByRole('button', { name: 'Générer le post' }).click()
     await expect(page.getByText('Décris ton projet ou ton sujet.')).toBeVisible()
-    expect(api.appels).toHaveLength(0)
+    expect(api.vers('posts/generate')).toHaveLength(0)
   })
 
   test('affiche l’erreur du backend quand la génération échoue', async ({ page }) => {

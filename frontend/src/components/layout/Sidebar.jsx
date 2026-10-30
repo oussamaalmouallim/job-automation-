@@ -4,10 +4,11 @@ import { motion } from 'framer-motion'
 import { ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { NAVIGATION } from '@/lib/navigation'
-import { PROFIL } from '@/lib/profil'
+import { useIdentite } from '@/store/useSessionStore'
 import { DUREES, COURBES } from '@/lib/animations'
 
 export default function Sidebar() {
+  const moi = useIdentite()
   return (
     <aside className="fixed inset-x-0 bottom-0 z-40 flex h-nav-mobile border-t border-ligne bg-surface px-2 md:static md:h-auto md:w-sidebar md:shrink-0 md:flex-col md:border-t-0 md:bg-app md:px-4 md:py-6">
       <Link to="/dashboard" className="mb-9 hidden px-3 text-[22px] font-bold tracking-tight text-texte md:block">
@@ -42,11 +43,11 @@ export default function Sidebar() {
         className="mt-4 hidden items-center gap-3 rounded-carte border border-ligne bg-surface p-3 transition-colors duration-rapide hover:bg-surface-douce md:flex"
       >
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-pilule bg-sable text-xs font-semibold text-texte">
-          {PROFIL.initiales}
+          {moi.initiales}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-medium text-texte">{PROFIL.nomComplet}</span>
-          <span className="block truncate text-xs text-texte-pale">{PROFIL.role}</span>
+          <span className="block truncate text-sm font-medium text-texte">{moi.nomComplet}</span>
+          <span className="block truncate text-xs text-texte-pale">{moi.email}</span>
         </span>
         <ChevronRight size={16} className="shrink-0 text-texte-pale" />
       </Link>

@@ -7,10 +7,11 @@ LinkedAI aide un ingénieur à soigner sa présence LinkedIn et sa recherche d'e
 - **Visuel IA** : un visuel animé en HTML, exportable en PNG.
 - **Scraper LinkedIn** : des profils publics trouvés par mots-clés et localisation, filtrables et exportables en CSV.
 - **Dashboard** : activité, répartition des posts, derniers profils, actions rapides.
+- **Comptes** : inscription, connexion, mot de passe oublié ; toutes les pages demandent d'être connecté.
 
 Lettre de motivation et recherche d'offres sont prévues dans les prochaines phases (voir [Feuille de route](#feuille-de-route)).
 
-**Stack** : React 18, Vite 5, Tailwind 3, framer-motion · Node.js, Express, Prisma, SQLite · n8n (Docker) · DeepSeek via OpenRouter · Google Custom Search.
+**Stack** : React 18, Vite 5, Tailwind 3, framer-motion · Node.js, Express, Prisma, PostgreSQL · n8n (Docker) · DeepSeek via OpenRouter · Google Custom Search.
 
 ---
 
@@ -24,7 +25,7 @@ Navigateur (front React)
         │     ├─ resource-suggestions    docs + conseils (aucun appel externe)
         │     ├─ generate-visual         visuel HTML (deepseek)
         │     └─ scraper                 profils LinkedIn (Google Custom Search), appelé par /api/profils/rechercher
-        └─▶ SQLite (Prisma)              historique des posts générés
+        └─▶ PostgreSQL (Prisma)          historique des posts générés
 ```
 
 - Le front ne contient **aucune clé**. Il n'appelle que le backend (`/api`).
@@ -35,14 +36,15 @@ Détails : [docs/architecture.md](docs/architecture.md).
 
 ## Démarrage rapide
 
-Prérequis : Node.js 20+, Docker Desktop.
+Prérequis : Node.js 22+, Docker Desktop.
 
 ```bash
 # 1. Une seule fois : dépendances, base, clés
 npm install --prefix backend
 npm install --prefix frontend
-npm run db:init --prefix backend
 cp backend/.env.example backend/.env           # puis renseigner OPENROUTER_API_KEY
+docker compose up -d db                        # PostgreSQL (port 5433)
+npm run db:init --prefix backend               # créer les tables
 cp n8n-workflows/n8n.env.example ~/n8n.env     # puis renseigner GOOGLE_API_KEY, GOOGLE_CX, OPENROUTER_API_KEY
 
 # 2. Une seule fois : n8n dans Docker, puis importer les 3 workflows (voir docs/n8n.md)
@@ -52,20 +54,20 @@ npm run n8n:reload
 npm run dev
 ```
 
-`npm run dev` démarre n8n, le backend (http://localhost:4000) et le front (http://localhost:3000/job-automation-/). Ctrl+C arrête le backend et le front ; n8n reste actif dans Docker.
+`npm run dev` démarre PostgreSQL et n8n, applique les migrations, puis lance le backend (http://localhost:4000) et le front (http://localhost:3000/job-automation-/). Ctrl+C arrête le backend et le front ; PostgreSQL et n8n restent actifs dans Docker.
 
 ## Structure du projet
 
 ```text
 .
-├── backend/               API Express : génération des posts, relais n8n, base SQLite
+├── backend/               API Express : génération des posts, relais n8n, base PostgreSQL
 │   ├── src/app.js         application : CORS, limite d'appels, routes
 │   ├── src/index.js       point d'entrée : charge .env, ouvre le port
 │   ├── src/routes/        posts.js (OpenRouter + historique), n8n.js (relais)
-│   ├── src/profils/       recherche de profils : fournisseurs (n8n), normalisation
+│   ├── src/profils/       recherche de profils : fournisseurs (Serper, Brave, n8n), normalisation
 │   ├── src/lib/           prisma.js, rateLimit.js
-│   ├── prisma/            schéma et migration SQLite
-│   ├── scripts/           init-db.js, list-post-logs.js
+│   ├── prisma/            schéma et migrations PostgreSQL
+│   ├── scripts/           list-post-logs.js, reprendre-sqlite.js
 │   └── test/              tests Vitest + Supertest
 ├── e2e/                   tests de bout en bout (Playwright)
 ├── frontend/              application React
@@ -88,10 +90,13 @@ npm run dev
 | Variable | Rôle |
 |---|---|
 | `OPENROUTER_API_KEY` | clé OpenRouter, jamais envoyée au navigateur |
+| `BETTER_AUTH_SECRET` | secret de signature des sessions, obligatoire en production (`openssl rand -hex 32`) |
+| `BETTER_AUTH_URL` | adresse publique du backend, utilisée dans les liens de réinitialisation |
+| `SERPER_API_KEY`, `BRAVE_API_KEY` | fournisseurs de profils, essayés dans cet ordre avant n8n ; vides = ignorés (voir [docs/sources.md](docs/sources.md)) |
 | `CORS_ORIGINS` | adresses de front autorisées, séparées par des virgules |
 | `N8N_BASE_URL` | adresse de n8n (défaut `http://localhost:5678`) |
 | `APP_URL` | adresse publique du front, envoyée à OpenRouter |
-| `DATABASE_URL` | base SQLite (défaut `file:./dev.db`) |
+| `DATABASE_URL` | base PostgreSQL (défaut : celle de `docker-compose.yml`, `postgresql://linkedai:linkedai@localhost:5433/linkedai`) |
 
 ### n8n — `~/n8n.env` (hors du dépôt)
 
@@ -112,13 +117,19 @@ Après un changement de clé : `npm run n8n:reload` (`docker restart` ne relit p
 
 ## Base de données
 
-Prisma + SQLite, une table : `GeneratedPostLog` (chaque post généré, avec sa description, ses technologies, son ton, le modèle et la réponse brute).
+Prisma + PostgreSQL 16, dans Docker (`docker-compose.yml`, conteneur `linkedai-postgres`, port 5433). Une table : `GeneratedPostLog` (chaque post généré, avec sa description, ses technologies, son ton, le modèle et la réponse brute).
 
 ```bash
-npm run db:init --prefix backend   # créer la table
-npm run db:logs --prefix backend   # voir les derniers posts dans le terminal
-cd backend && npx prisma studio    # parcourir la base dans le navigateur
+docker compose up -d db              # démarrer PostgreSQL
+npm run db:init --prefix backend     # appliquer les migrations (prisma migrate deploy)
+npm run db:logs --prefix backend     # voir les derniers posts dans le terminal
+npm run db:reprise --prefix backend  # copier l'ancienne base SQLite (prisma/dev.db), sans doublon
+cd backend && npx prisma studio      # parcourir la base dans le navigateur
 ```
+
+Les données vivent dans le volume Docker `linkedai-pgdata` : elles survivent à l'arrêt du conteneur. Les identifiants de `docker-compose.yml` servent seulement au développement.
+
+Les tests d'intégration utilisent le schéma `test` de cette même base, jamais `public` : `docker compose up -d db` doit tourner avant `npm test`.
 
 ## Démo en ligne
 
@@ -174,6 +185,7 @@ La CI (`.github/workflows/ci.yml`) lance lint, tests, build, synchro du design e
 ## Sécurité
 
 - Clés uniquement dans `backend/.env` et `~/n8n.env`, tous deux hors du dépôt.
+- Comptes : mots de passe hachés, sessions par cookie httpOnly, limite de tentatives, lien de réinitialisation à usage unique (détails : [docs/architecture.md](docs/architecture.md#comptes-et-connexion)).
 - Le backend limite les routes IA à 20 appels par minute et par IP, et ne relaie que 3 webhooks n8n.
 - La limite de dépense de la clé OpenRouter (sur openrouter.ai) reste la vraie protection en démo publique.
 - Une ancienne clé Google figure dans l'historique git du dépôt public : la restreindre à « Custom Search API » dans Google Cloud, ou la remplacer.

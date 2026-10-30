@@ -1,9 +1,10 @@
 /** cloneme: C-14, A-03 — Carte visuelle LinkedAI : carte crème inclinée qui flotte (d'après la carte bancaire). */
 import { motion } from 'framer-motion'
 import { DUREES } from '@/lib/animations'
-import { PROFIL } from '@/lib/profil'
+import { useIdentite } from '@/store/useSessionStore'
 
 export default function CarteVisuelle() {
+  const moi = useIdentite()
   return (
     <div aria-hidden="true" className="pointer-events-none relative h-full w-full">
       {/* Halo doux qui remplace la photo de satin de la maquette. */}
@@ -23,7 +24,7 @@ export default function CarteVisuelle() {
           <div className="relative mt-5 h-8 w-11 rounded-[7px] bg-puce" />
           <p className="relative mt-4 font-mono text-[11px] tracking-[0.2em] text-texte-doux">•••• •••• •••• 2026</p>
           <div className="absolute bottom-5 left-5 right-5 flex items-end justify-between gap-3">
-            <p className="min-w-0 truncate text-[10px] font-medium uppercase tracking-[0.12em] text-texte-doux">{PROFIL.nomComplet}</p>
+            <p className="min-w-0 truncate text-[10px] font-medium uppercase tracking-[0.12em] text-texte-doux">{moi.nomComplet}</p>
             <span className="flex shrink-0">
               <span className="h-7 w-7 rounded-pilule bg-olive" />
               <span className="-ml-3 h-7 w-7 rounded-pilule bg-peche opacity-90" />

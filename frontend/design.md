@@ -23,7 +23,11 @@ donnée réelle de LinkedAI, ou n'est pas repris.
 | P-03 | `/scraper` | lancement du scraper n8n, table des profils, filtre, export CSV | C-01 | refait, logique gardée | Approximé |
 | P-04 | `/lettre` | lettre de motivation (Phase 2) | C-01 | page d'attente C-25 | Approximé |
 | P-05 | `/offres` | recherche d'offres (Phase 3) | C-01 | page d'attente C-25 | Approximé |
-| P-06 | `/settings` | paramètres n8n, modèle et ton par défaut, à propos | C-01 | refait, logique gardée | Approximé |
+| P-06 | `/settings` | compte et déconnexion, modèle et ton par défaut, webhook du scraper, à propos | C-01 | refait, logique gardée | Approximé |
+| P-07 | `/connexion` | connexion par e-mail et mot de passe (lot L0.4) | C-30 | nouveau, hors cadre C-01 | Déduit |
+| P-08 | `/inscription` | création de compte (lot L0.4) | C-30 | nouveau, hors cadre C-01 | Déduit |
+| P-09 | `/mot-de-passe-oublie` | demande d'un lien de réinitialisation (lot L0.4) | C-30 | nouveau, hors cadre C-01 | Déduit |
+| P-10 | `/reinitialiser` | nouveau mot de passe depuis le lien de l'e-mail (lot L0.4) | C-30 | nouveau, hors cadre C-01 | Déduit |
 | P-99 | `*` | page introuvable | C-01 | nouveau (aucune route ne tombe sur un écran blanc) | Approximé |
 
 `/` redirige vers `/dashboard`, comme avant.
@@ -111,6 +115,8 @@ donnée réelle de LinkedAI, ou n'est pas repris.
 | C-23 | Barre de progression | Lightswind Top Loader | `src/components/lightswind/TopLoader.jsx` | Lightswind |
 | C-24 | Table des profils | photo, nom, titre, extrait, lien | `src/components/scraper/TableProfils.jsx` | Approximé |
 | C-25 | Page d'attente | fonction prévue, phase, retour | `src/components/ui/PageAttente.jsx` | Approximé |
+| C-30 | Cadre des pages de compte | fond de l'app, logo, carte centrée (C-07), liens en pied | `src/components/auth/CadreAuth.jsx` | Déduit |
+| C-31 | Garde des routes | chargement de la session, renvoi vers `/connexion` ou `/dashboard` | `src/components/auth/RouteProtegee.jsx` | Déduit |
 
 ## 6. Typographie appliquée
 

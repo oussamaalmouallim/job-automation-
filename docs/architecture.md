@@ -5,10 +5,28 @@
 | Partie | Techno | Rôle | Port |
 |---|---|---|---|
 | Front | React 18, Vite 5, Tailwind 3, zustand, framer-motion | interface, données gardées dans le navigateur | 3000 |
-| Backend | Node.js, Express 4, Prisma 6, SQLite | seul point d'entrée : IA, relais n8n, historique | 4000 |
+| Backend | Node.js, Express 4, Prisma 6 | seul point d'entrée : IA, relais n8n, recherche de profils, historique | 4000 |
+| Base | PostgreSQL 16 (Docker, `docker-compose.yml`) | historique des posts générés | 5433 |
 | n8n | Docker `n8nio/n8n` | ressources, visuel IA, scraper | 5678 |
 | IA | DeepSeek (`deepseek/deepseek-chat`) via OpenRouter | posts et visuels | — |
 | Recherche | Google Custom Search | profils LinkedIn publics pour le scraper | — |
+
+## Comptes et connexion
+
+Better Auth (MIT), servi par le backend sous `/api/auth/*` (`backend/src/auth/`) :
+
+| Élément | Choix |
+|---|---|
+| Inscription, connexion | e-mail et mot de passe, 10 caractères au moins ; mot de passe haché par Better Auth (table `account`) |
+| Session | en base (table `session`), 7 jours ; cookie httpOnly, `SameSite=Lax`, `Secure` en production |
+| Mot de passe oublié | lien à usage unique, valable 1 heure (table `verification`) ; les sessions ouvertes sont fermées. **En développement, l'e-mail est simulé : le lien s'affiche dans le terminal du backend.** |
+| Limite de tentatives | 5 connexions et 5 inscriptions par minute et par IP, 3 demandes de lien |
+| Garde | toute route `/api` sauf `/api/health` et `/api/auth/*` répond 401 sans session (`exigerSession`) |
+| Origine | une requête qui modifie des données, venue d'un navigateur sur un site absent de `CORS_ORIGINS`, est refusée (403) |
+
+Côté front : `services/auth.js` (appels), `store/useSessionStore.js` (session en mémoire), `components/auth/RouteProtegee.jsx` (garde des pages). Une réponse 401 pendant l'utilisation renvoie vers `/connexion`.
+
+**Pas encore fait (lot L0.5)** : les posts, profils et paramètres sont encore gardés dans le navigateur, sans lien avec le compte. Deux comptes ouverts tour à tour dans le même navigateur voient donc les mêmes données locales.
 
 ## Les trois parcours
 
@@ -41,9 +59,12 @@ Le visuel est affiché dans un iframe isolé (`sandbox="allow-scripts"`, sans ac
 Scraper.jsx → services/api.js rechercherProfils()
   → POST /api/profils/rechercher { requete, lieu, pages }      (backend/src/profils/routes.js)
       → fournisseurs, essayés dans l'ordre                       (profils/fournisseurs/index.js)
-          → n8n : workflow linkedin-scraper-webhook → Google Custom Search, 10 profils par page, 10 pages au plus
+          1. Serper (Google), si SERPER_API_KEY                  (serper.js)
+          2. Brave, si BRAVE_API_KEY                              (brave.js)
+          3. n8n : workflow linkedin-scraper-webhook → Google Custom Search, en dernier secours
+          10 profils par page, 10 pages au plus ; arrêt à la première page vide
       → normalisation                                            (profils/normaliser.js)
-  ← { profils: [{ urlNormalisee, nom, poste, entreprise, lieu, extrait, image, source }], rejetes, source }
+  ← { profils: [{ urlNormalisee, nom, poste, entreprise, lieu, extrait, image, source }], rejetes, source, secours }
   → versProfilLocal() puis addProfiles() dans le store           (forme gardée : name, title, link, snippet…)
 ```
 
@@ -59,19 +80,22 @@ Si un webhook est réglé dans Paramètres (ou `VITE_N8N_SCRAPER_WEBHOOK`), le f
 
 ## API du backend
 
+Toutes les routes ci-dessous, sauf `/api/health` et `/api/auth/*`, demandent une session (401 sinon).
+
 | Méthode | Route | Corps | Réponse |
 |---|---|---|---|
-| GET | `/api/health` | — | `{ status: 'ok', version }` |
+| GET | `/api/health` | — | `{ status: 'ok', version }` · public |
+| POST, GET | `/api/auth/*` | voir Better Auth : `sign-up/email`, `sign-in/email`, `sign-out`, `get-session`, `request-password-reset`, `reset-password` | public |
 | POST | `/api/posts/generate` | `{ type, description, tech, tone }` | `{ success, post, log }` · 400 si description vide ou > 2000 caractères · 502 si OpenRouter échoue |
 | GET | `/api/posts/logs` | `?userId=` (optionnel) | `{ success, logs }` (50 derniers) |
-| POST | `/api/profils/rechercher` | `{ requete, lieu?, pages? }` (1 à 10 pages) | `{ profils, rejetes, source }` · 400 si paramètres invalides · 502 si aucun fournisseur ne répond |
+| POST | `/api/profils/rechercher` | `{ requete, lieu?, pages? }` (1 à 10 pages) | `{ profils, rejetes, source, secours }` · 400 si paramètres invalides · 502 si aucun fournisseur ne répond |
 | POST | `/api/n8n/:nom` | relayé tel quel | réponse de n8n · 404 si `nom` n'est pas autorisé |
 
 Webhooks autorisés : `resource-suggestions`, `generate-visual`, `scraper`.
 
 ## Protections
 
-- **Clés** : `OPENROUTER_API_KEY` dans `backend/.env` ; clés n8n dans `~/n8n.env`. Le build du front n'en contient aucune.
+- **Clés** : `OPENROUTER_API_KEY`, `SERPER_API_KEY` et `BRAVE_API_KEY` dans `backend/.env` ; clés n8n dans `~/n8n.env`. Le build du front n'en contient aucune.
 - **CORS** : seules les origines de `CORS_ORIGINS` peuvent appeler le backend depuis un navigateur.
 - **Limite** : 20 appels par minute et par IP sur `/api/posts/generate`, `/api/n8n` et `/api/profils/rechercher` (`backend/src/lib/rateLimit.js`, en mémoire). `trust proxy` est activé pour lire l'IP réelle derrière un tunnel.
 - **Relais n8n** : liste blanche de 3 webhooks ; le reste de n8n n'est jamais exposé.
@@ -81,7 +105,7 @@ Webhooks autorisés : `resource-suggestions`, `generate-visual`, `scraper`.
 | Où | Quoi | Durée de vie |
 |---|---|---|
 | Navigateur, `localStorage` « linkedai-storage » | posts (50), profils (200), lettres (20), offres, paramètres | jusqu'à effacement du navigateur |
-| SQLite `backend/prisma/dev.db`, table `GeneratedPostLog` | chaque post généré par le backend | permanente |
+| PostgreSQL (conteneur `linkedai-postgres`, volume `linkedai-pgdata`), table `GeneratedPostLog` | chaque post généré par le backend | permanente |
 | `~/n8n-data` | workflows et comptes n8n | permanente |
 
 ## Front : organisation

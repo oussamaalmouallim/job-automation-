@@ -1,0 +1,25 @@
+# Services de développement de LinkedAI (lot L0.3). Lancer : docker compose up -d db
+# PostgreSQL écoute sur le port 5433 de la machine, pour ne pas gêner un PostgreSQL déjà installé.
+# Identifiants de développement seulement : ne jamais réutiliser ce mot de passe ailleurs.
+# n8n n'est pas ici : il garde son propre conteneur (voir docs/n8n.md).
+services:
+  db:
+    image: postgres:16.4-alpine
+    container_name: linkedai-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: linkedai
+      POSTGRES_PASSWORD: linkedai
+      POSTGRES_DB: linkedai
+    ports:
+      - "5433:5432"
+    volumes:
+      - linkedai-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U linkedai -d linkedai"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  linkedai-pgdata:

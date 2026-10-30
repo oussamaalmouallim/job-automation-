@@ -1,7 +1,8 @@
 /**
  * Outils communs des tests de bout en bout.
- * - simulerApi : remplace le backend (posts, n8n) par des réponses fixes et note chaque appel ;
+ * - simulerApi : remplace le backend (posts, n8n, profils, comptes) par des réponses fixes et note chaque appel ;
  *   tout appel /api non prévu échoue, pour qu'un nouvel appel ne passe pas inaperçu.
+ *   Par défaut, un utilisateur est connecté (UTILISATEUR) ; { connecte: false } simule un visiteur.
  * - Les ressources externes (police Google, html-to-image sur jsDelivr) sont servies en local :
  *   la suite tourne sans Internet.
  * - erreursConsole : erreurs JavaScript et console de la page.
@@ -15,6 +16,9 @@ const HTML_TO_IMAGE = readFileSync(require.resolve('html-to-image/dist/html-to-i
 
 export const CLE_STOCKAGE = 'linkedai-storage'
 
+export const UTILISATEUR = { id: 'u-1', name: 'Amina Test', email: 'amina@exemple.test', emailVerified: false }
+const sessionDe = (utilisateur) => ({ session: { id: 's-1', userId: utilisateur.id, expiresAt: '2099-01-01T00:00:00.000Z' }, user: utilisateur })
+
 const REPONSES = {
   'posts/generate': () => ({ status: 200, json: { success: true, post: POST_GENERE } }),
   'n8n/resource-suggestions': () => ({ status: 200, json: RESSOURCES }),
@@ -23,8 +27,27 @@ const REPONSES = {
   'profils/rechercher': () => ({ status: 200, json: { profils: PROFILS_NORMALISES, rejetes: 0, source: 'n8n' } }),
 }
 
-export async function simulerApi(page, remplacements = {}) {
+export async function simulerApi(page, remplacements = {}, { connecte = true } = {}) {
   const appels = []
+  // La session suit les connexions et déconnexions simulées pendant le test.
+  let utilisateur = connecte ? UTILISATEUR : null
+  const COMPTE = {
+    'auth/get-session': () => ({ status: 200, json: utilisateur ? sessionDe(utilisateur) : null }),
+    'auth/sign-in/email': (corps) => {
+      if (corps?.password !== 'mot-de-passe-solide-1') return { status: 401, json: { code: 'INVALID_EMAIL_OR_PASSWORD', message: 'Invalid email or password' } }
+      utilisateur = { ...UTILISATEUR, email: corps.email }
+      return { status: 200, json: { user: utilisateur } }
+    },
+    'auth/sign-up/email': (corps) => {
+      utilisateur = { ...UTILISATEUR, name: corps.name, email: corps.email }
+      return { status: 200, json: { user: utilisateur } }
+    },
+    'auth/sign-out': () => { utilisateur = null; return { status: 200, json: { success: true } } },
+    'auth/request-password-reset': () => ({ status: 200, json: { status: true } }),
+    'auth/reset-password': (corps) => (corps?.token === 'jeton-valide'
+      ? { status: 200, json: { status: true } }
+      : { status: 400, json: { code: 'INVALID_TOKEN', message: 'Invalid token' } }),
+  }
 
   await page.route('**/api/**', async (route) => {
     const requete = route.request()
@@ -32,7 +55,7 @@ export async function simulerApi(page, remplacements = {}) {
     const corps = requete.postDataJSON?.() ?? null
     appels.push({ chemin, methode: requete.method(), corps })
 
-    const reponse = (remplacements[chemin] || REPONSES[chemin])?.(corps)
+    const reponse = (remplacements[chemin] || REPONSES[chemin] || COMPTE[chemin])?.(corps)
     if (!reponse) return route.fulfill({ status: 599, body: `Appel non simulé : ${chemin}` })
     return route.fulfill({ status: reponse.status, contentType: 'application/json', body: JSON.stringify(reponse.json) })
   })

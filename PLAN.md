@@ -573,8 +573,8 @@ Décisions prises par le porteur du projet le **29/10/2026**. Une décision ne s
 
 | ID | Sujet | Quand |
 |---|---|---|
-| D-01-bis | Quel fournisseur de recherche payant, et quel budget mensuel | début de `L1.4` (au plus tard mi-décembre 2026) |
-| D-03-bis | Quelle bibliothèque d'authentification précise | début de `L0.4` |
+| D-01-bis | ~~Quel fournisseur~~ **Décidé le 30/10/2026 : Serper puis Brave, sur leur part gratuite, n8n en secours** (`docs/sources.md`). Reste ouvert : le budget si l'usage dépasse le gratuit, et les droits de stockage chez Brave | à revoir quand les clés seront en place |
+| D-03-bis | ~~Quelle bibliothèque~~ **Décidé le 30/10/2026 : Better Auth** (MIT, version 1.7.8) | — |
 | D-12 | Statuts exacts des candidatures | début de `L5.1` |
 | D-04, D-07, D-10 | Hébergement, nom, paiement | à la reprise de la Phase 8 |
 
@@ -727,6 +727,8 @@ Fin du lot : critères de `L0.1` cochés, section « Tests » du README écrite,
 
 ### L0.3 — Passage à PostgreSQL et migrations
 
+> **État : ✅ livré le 30/10/2026** sur `feat/phase-0-socle`. PostgreSQL 16 dans Docker (`docker-compose.yml`, port 5433), migration `20261030120000_init_postgresql` (l’ancienne migration SQLite est retirée, son historique reste dans git). Reprise `npm run db:reprise` : 2 journaux sur 2 copiés, identiques champ par champ, 0 doublon au second passage. `db:init` applique désormais les migrations ; `db:logs` est inchangé. Tests : 83 backend, dont 4 sur une vraie base (schéma `test`, jamais `public`). CI : service PostgreSQL et Node 22. Prisma refuse `migrate reset` lancé par une IA : le test vide son propre schéma puis applique les migrations.
+
 | Rubrique | Contenu |
 |---|---|
 | Analyser avant | `schema.prisma`, `prisma/migrations/`, `scripts/init-db.js`, `scripts/list-post-logs.js`, les journaux existants. |
@@ -741,6 +743,8 @@ Fin du lot : critères de `L0.1` cochés, section « Tests » du README écrite,
 | Livrables | Migration, `docker-compose.yml`, procédure de reprise dans `docs/`. |
 
 ### L0.4 — Comptes et sessions
+
+> **État : ✅ livré le 30/10/2026** sur `feat/phase-0-socle`. Better Auth 1.7.8 (D-03-bis) : inscription, connexion, déconnexion, mot de passe oublié (e-mail simulé en développement), sessions en base, cookie httpOnly SameSite=Lax, limite de tentatives, garde 401 sur toute l’API sauf `/api/health`, refus des requêtes venues d’une origine non autorisée (ajouté après un test qui a montré que Better Auth acceptait une inscription d’un autre site sans cookie). Front : 4 pages (P-07 à P-10), garde des routes, retour à la connexion sur 401, identité tirée du compte (plus de nom en dur), déconnexion dans Paramètres. Un e-mail déjà pris est refusé par Better Auth avec un code 4xx (et non 409 comme prévu). Tests : 119 backend (dont 18 sur une vraie base), 20 front, 32 de bout en bout (stables sur 3 passages), et un parcours réel complet dans le navigateur. **Limite** : posts, profils et paramètres restent dans le navigateur, sans lien avec le compte (lots L0.5 et L0.7). La démo en ligne demande que front et backend soient sur le même site (`docs/demo.md`).
 
 | Rubrique | Contenu |
 |---|---|
@@ -862,6 +866,8 @@ Fin du lot : critères de `L0.1` cochés, section « Tests » du README écrite,
 | Livrables | Service, messages de résultat. |
 
 ### L1.4 — Fournisseur de recherche payant, n8n en secours
+
+> **État : 🛠 code livré le 30/10/2026, en attente des clés.** Serper puis Brave, chacun actif seulement si sa clé est dans `backend/.env`, puis n8n en dernier secours ; arrêt à la première page vide ; pages appelées notées dans les journaux ; source et secours affichés à l’écran. Tests : 101 backend (fournisseurs simulés : succès, 401, 402, 403, 429, 500, réseau, bascule Serper → Brave → n8n, clés absentes de la réponse), 21 de bout en bout. Vérifié en vrai sans clé : n8n répond, sans secours. **Reste à faire** : mettre les clés, puis le comparatif de qualité sur 5 requêtes (`docs/sources.md`), avant le 01/01/2027.
 
 Lot **avancé et daté** : en service **avant le 1er janvier 2027** (section 8.5).
 

@@ -2,6 +2,34 @@
 
 Préparé le **30/10/2026** pour la décision `D-01-bis` (lot `L1.4` de [PLAN.md](../PLAN.md)).
 
+## Décision (30/10/2026)
+
+**Les deux sont branchés**, puisque chacun a une part gratuite :
+
+1. **Serper** en premier : résultats Google, 2 500 requêtes offertes ;
+2. **Brave** ensuite : 5 $ de crédit chaque mois, soit environ 1 000 requêtes ;
+3. **n8n** (Google Custom Search) en dernier secours, jusqu'à son arrêt le 01/01/2027.
+
+Un fournisseur sans clé dans `backend/.env` est simplement sauté.
+
+Les deux réserves de la section suivante restent vraies :
+
+- **Brave** : garder les profils demande une formule « avec droits de stockage », dont le prix n'est pas publié. Tant qu'elle n'est pas souscrite, Brave sert seulement de secours.
+- **Serper** : risque juridique lié à la collecte des résultats de Google.
+
+La comparaison de qualité sur les 5 requêtes (plus bas) se fera dès que les clés seront en place.
+
+### Mettre les clés
+
+1. Créer un compte sur [serper.dev](https://serper.dev). Copier la clé « API Key » du tableau de bord.
+2. Créer un compte sur [brave.com/search/api](https://brave.com/search/api/), offre « Search ». Une carte bancaire sera sans doute demandée pour le crédit offert (non vérifié). Copier la clé.
+3. Les coller dans `backend/.env`, jamais dans le front :
+   ```env
+   SERPER_API_KEY=...
+   BRAVE_API_KEY=...
+   ```
+4. Relancer le backend. Le message de succès du Scraper indique quel fournisseur a répondu.
+
 ## Le besoin
 
 - Une requête du type `ingénieur cloud maroc site:linkedin.com/in`.

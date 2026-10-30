@@ -19,14 +19,31 @@ jobs:
     defaults:
       run:
         working-directory: backend
+    # Vraie base PostgreSQL pour les tests d'intégration (test/postgres.test.js), dans un schéma « test ».
+    services:
+      postgres:
+        image: postgres:16.4-alpine
+        env:
+          POSTGRES_USER: linkedai
+          POSTGRES_PASSWORD: linkedai
+          POSTGRES_DB: linkedai
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U linkedai -d linkedai"
+          --health-interval 2s --health-timeout 3s --health-retries 30
+    env:
+      DATABASE_URL_TEST: postgresql://linkedai:linkedai@localhost:5433/linkedai?schema=test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # 22 au moins : la reprise SQLite utilise le module node:sqlite.
+          node-version: 22
           cache: npm
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
+      - run: npx prisma generate
       - run: npm run lint
       - run: npm test
 

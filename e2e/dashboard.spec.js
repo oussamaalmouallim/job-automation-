@@ -1,10 +1,10 @@
-/** Le dashboard s'ouvre sans erreur dans la console (premier test de bout en bout, lot L0.1). */
+/** Le dashboard s'ouvre sans erreur dans la console (premier test de bout en bout, lot L0.1), utilisateur connecté. */
 import { test, expect } from '@playwright/test'
+import { simulerApi, erreursConsole } from './fixtures/aides.js'
 
 test('le dashboard s’affiche sans erreur console', async ({ page }) => {
-  const erreurs = []
-  page.on('console', (msg) => { if (msg.type() === 'error') erreurs.push(msg.text()) })
-  page.on('pageerror', (err) => erreurs.push(err.message))
+  const erreurs = erreursConsole(page)
+  await simulerApi(page)
 
   await page.goto('./')
 

@@ -1,6 +1,7 @@
 /**
  * Routes des profils (lot L1.2).
- * POST /api/profils/rechercher { requete, lieu?, pages? } → { profils, rejetes, source }
+ * POST /api/profils/rechercher { requete, lieu?, pages? } → { profils, rejetes, source, secours }
+ * `secours` est vrai quand un fournisseur placé avant `source` a échoué (voir fournisseurs/index.js).
  * Les profils sont normalisés (profils/normaliser.js). Rien n'est encore enregistré en base : le front
  * les garde dans le navigateur jusqu'au lot L1.1.
  */
@@ -24,9 +25,10 @@ router.post('/rechercher', async (req, res) => {
   }
 
   try {
-    const { bruts, source } = await rechercherAvecSecours(parametres.data)
+    const { bruts, source, echecs } = await rechercherAvecSecours(parametres.data)
+    if (echecs.length) console.warn('[Profils] Secours utilisé :', JSON.stringify(echecs))
     const { profils, rejetes } = normaliserLot(bruts, source)
-    return res.json({ profils, rejetes, source })
+    return res.json({ profils, rejetes, source, secours: echecs.length > 0 })
   } catch (err) {
     console.error('[Profils] Recherche impossible :', JSON.stringify(err.echecs ?? err.message))
     return res.status(502).json({ error: 'La recherche de profils a échoué : aucun fournisseur n’a répondu.' })

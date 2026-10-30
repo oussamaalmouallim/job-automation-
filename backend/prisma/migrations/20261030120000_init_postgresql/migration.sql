@@ -1,6 +1,6 @@
 -- CreateTable
 CREATE TABLE "GeneratedPostLog" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "userId" TEXT,
     "type" TEXT,
     "description" TEXT NOT NULL,
@@ -9,8 +9,10 @@ CREATE TABLE "GeneratedPostLog" (
     "model" TEXT,
     "generatedContent" TEXT NOT NULL,
     "rawResponse" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "GeneratedPostLog_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -18,3 +20,4 @@ CREATE INDEX "GeneratedPostLog_userId_idx" ON "GeneratedPostLog"("userId");
 
 -- CreateIndex
 CREATE INDEX "GeneratedPostLog_createdAt_idx" ON "GeneratedPostLog"("createdAt");
+

@@ -1,6 +1,7 @@
 /** Génération des posts (routes/posts.js), avec OpenRouter et Prisma simulés. */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import request from 'supertest'
+import { gardeTest } from './aides.js'
 
 const { axiosPost, creerLog } = vi.hoisted(() => ({ axiosPost: vi.fn(), creerLog: vi.fn() }))
 
@@ -8,7 +9,7 @@ vi.mock('axios', () => ({ default: { post: axiosPost } }))
 vi.mock('../src/lib/prisma.js', () => ({ prisma: { generatedPostLog: { create: creerLog, findMany: vi.fn() } } }))
 
 const { creerApp } = await import('../src/app.js')
-const app = creerApp({ journal: false })
+const app = creerApp({ journal: false, garde: gardeTest })
 
 const reponseOpenRouter = (contenu) => ({ data: { choices: [{ message: { content: contenu } }] } })
 

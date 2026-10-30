@@ -19,6 +19,7 @@ test('lance une recherche, affiche, filtre, exporte et garde les profils', async
   await page.getByRole('button', { name: 'Lancer le scraper' }).click()
 
   await expect(page.getByText(`${PROFILS_NORMALISES.length} profils recuperes !`)).toBeVisible()
+  await expect(page.getByText('— source : n8n (Google)')).toBeVisible()
   await expect(page.getByText(`Profils (${PROFILS_NORMALISES.length})`)).toBeVisible()
   for (const p of PROFILS_NORMALISES) await expect(page.getByRole('cell', { name: p.nom })).toBeVisible()
   // Poste et entreprise séparés par le backend, réunis pour l'affichage actuel.
@@ -59,6 +60,13 @@ test('signale les résultats ignorés faute de lien de profil valide', async ({ 
   await page.goto('./scraper')
   await page.getByRole('button', { name: 'Lancer le scraper' }).click()
   await expect(page.getByText('1 profils recuperes ! (3 ignorés : lien de profil invalide)')).toBeVisible()
+})
+
+test('indique le fournisseur de secours quand le premier a échoué', async ({ page }) => {
+  await simulerApi(page, { 'profils/rechercher': () => ({ status: 200, json: { profils: PROFILS_NORMALISES, rejetes: 0, source: 'brave', secours: true } }) })
+  await page.goto('./scraper')
+  await page.getByRole('button', { name: 'Lancer le scraper' }).click()
+  await expect(page.getByText('— source : Brave (secours)')).toBeVisible()
 })
 
 test('dit quand aucun profil n’est trouvé', async ({ page }) => {

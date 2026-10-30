@@ -18,6 +18,10 @@ import TableProfils from '../components/scraper/TableProfils'
 
 const envScraperWebhook = import.meta.env.VITE_N8N_SCRAPER_WEBHOOK || ''
 
+// Nom affiché du fournisseur qui a répondu ; « secours » quand un fournisseur précédent a échoué.
+const SOURCES = { serper: 'Serper (Google)', brave: 'Brave', n8n: 'n8n (Google)' }
+const libelleSource = (source, secours) => `${SOURCES[source] || source}${secours ? ' (secours)' : ''}`
+
 // Par défaut, la recherche passe par le backend, qui choisit le fournisseur et normalise les profils.
 // Un webhook réglé dans Paramètres (ou VITE_N8N_SCRAPER_WEBHOOK) est appelé directement, comme avant.
 
@@ -75,12 +79,12 @@ export default function Scraper() {
   // Recherche par le backend : profils déjà normalisés, rejets comptés.
   const lancerParBackend = async () => {
     try {
-      const { profils, rejetes } = await avecActivite(rechercherProfils({
+      const { profils, rejetes, source, secours } = await avecActivite(rechercherProfils({
         requete: form.query, lieu: form.location, pages: Number(form.maxPages),
       }))
       if (profils.length > 0) {
         addProfiles(profils)
-        toast.success(`${profils.length} profils recuperes !${rejetes ? ` (${rejetes} ignorés : lien de profil invalide)` : ''}`)
+        toast.success(`${profils.length} profils recuperes !${rejetes ? ` (${rejetes} ignorés : lien de profil invalide)` : ''} — source : ${libelleSource(source, secours)}`)
       } else {
         toast(rejetes ? `Aucun profil exploitable : ${rejetes} résultats sans lien de profil valide.` : 'Aucun profil trouvé pour cette recherche.', { icon: '!' })
       }

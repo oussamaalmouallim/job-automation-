@@ -5,17 +5,19 @@
   "scripts": {
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",
-    "db:init": "node scripts/init-db.js",
+    "db:init": "prisma migrate deploy",
     "db:logs": "node scripts/list-post-logs.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "lint": "eslint . --ext js --max-warnings 0",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "db:reprise": "node scripts/reprendre-sqlite.js"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
     "axios": "^1.7.0",
+    "better-auth": "1.7.8",
     "cors": "^2.8.5",
     "dotenv": "^16.4.0",
     "express": "^4.19.0",

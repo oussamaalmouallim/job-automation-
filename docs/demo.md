@@ -42,6 +42,20 @@ Noter l'adresse affichée, par exemple `https://xxxx.trycloudflare.com`. Elle ch
 2. `Settings → Pages → Source : GitHub Actions`.
 3. Pousser sur `main` : le workflow `.github/workflows/deploy-pages.yml` publie le site.
 
+## Connexion en démo : front et backend sur le même site
+
+Depuis le lot L0.4, l'app demande une connexion, et la session passe par un cookie `SameSite=Lax`. Si le front (Vercel) et le backend (tunnel) sont sur **deux sites différents**, le navigateur n'envoie pas ce cookie : on reste bloqué sur la page de connexion.
+
+Solution : faire passer `/api` par Vercel, pour que le navigateur ne voie qu'un seul site. Dans `frontend/vercel.json`, ajouter cette règle **avant** celle qui renvoie vers `index.html`, avec l'adresse du tunnel :
+
+```json
+{ "source": "/api/:chemin*", "destination": "https://xxxx.trycloudflare.com/api/:chemin*" }
+```
+
+Puis **ne pas** régler `VITE_API_URL` (le front appelle alors `/api`, servi par Vercel). Côté backend : `CORS_ORIGINS` et `BETTER_AUTH_URL` avec l'adresse Vercel.
+
+Non testé en conditions réelles : à vérifier lors de la prochaine démo.
+
 ## 4. Autoriser le front dans le backend
 
 Dans `backend/.env`, ajouter l'adresse du front à `CORS_ORIGINS` :

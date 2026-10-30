@@ -7,10 +7,23 @@ import axios from 'axios'
 // Adresse du backend. En local : le proxy Vite ('/api'). En démo : VITE_API_URL, l'adresse publique du backend.
 export const API_BASE = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '')
 
+// Client du backend : envoie le cookie de session (lot L0.4), même quand le backend est sur un autre domaine.
+// Le webhook n8n réglé à la main dans Paramètres n'utilise pas ce client : il ne reçoit jamais le cookie.
+export const client = axios.create({ baseURL: API_BASE, withCredentials: true })
+
+// Session expirée ou absente pendant l'utilisation : l'API répond 401, la session est oubliée
+// et l'utilisateur revient à la page de connexion (voir store/useSessionStore.js).
+let quandSessionExpire = () => {}
+export const surSessionExpiree = (rappel) => { quandSessionExpire = rappel }
+client.interceptors.response.use(undefined, (err) => {
+  if (err.response?.status === 401 && !String(err.config?.url).startsWith('/auth/')) quandSessionExpire()
+  return Promise.reject(err)
+})
+
 // Generateur de posts : la clé OpenRouter reste sur le backend, le navigateur ne la voit jamais.
 export async function generatePost({ type, description, tech, tone }) {
   try {
-    const res = await axios.post(`${API_BASE}/posts/generate`, { type, description, tech, tone }, { timeout: 90000 })
+    const res = await client.post('/posts/generate', { type, description, tech, tone }, { timeout: 90000 })
     return res.data.post
   } catch (err) {
     if (err.response?.data?.error) throw new Error(err.response.data.error)
@@ -20,13 +33,13 @@ export async function generatePost({ type, description, tech, tone }) {
 }
 
 export const getResources = async ({ post, tech, type }) => {
-  const res = await axios.post(`${API_BASE}/n8n/resource-suggestions`, { post, tech, type })
+  const res = await client.post('/n8n/resource-suggestions', { post, tech, type })
   return res.data
 }
 
 // Generateur de visuels IA
 export const generateVisual = async ({ post, tech, type }) => {
-  const res = await axios.post(`${API_BASE}/n8n/generate-visual`, { post, tech, type })
+  const res = await client.post('/n8n/generate-visual', { post, tech, type })
   return res.data
 }
 
@@ -48,7 +61,7 @@ export const versProfilLocal = (p) => ({
 // Renvoie { profils (forme locale), rejetes, source }.
 export async function rechercherProfils({ requete, lieu, pages }) {
   try {
-    const res = await axios.post(`${API_BASE}/profils/rechercher`, { requete, lieu, pages }, { timeout: 130000 })
+    const res = await client.post('/profils/rechercher', { requete, lieu, pages }, { timeout: 130000 })
     return { ...res.data, profils: res.data.profils.map(versProfilLocal) }
   } catch (err) {
     if (err.response?.data?.error) throw new Error(err.response.data.error)

@@ -1,6 +1,6 @@
 /**
  * Point d'entrée du backend LinkedAI (Express, port 4000).
- * Seul service exposé au navigateur : il garde la clé OpenRouter, enregistre les posts (Prisma/SQLite)
+ * Seul service exposé au navigateur : il garde la clé OpenRouter, enregistre les posts (Prisma/PostgreSQL)
  * et relaie les webhooks n8n autorisés. Voir README, section Architecture.
  * L'application elle-même est construite dans app.js ; ce fichier charge .env et ouvre le port.
  */

@@ -1,6 +1,7 @@
 /** Recherche de profils (profils/routes.js, fournisseurs), avec n8n simulé. */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import request from 'supertest'
+import { gardeTest } from './aides.js'
 
 const { axiosPost } = vi.hoisted(() => ({ axiosPost: vi.fn() }))
 vi.mock('axios', () => ({ default: { post: axiosPost } }))
@@ -9,7 +10,7 @@ vi.mock('../src/lib/prisma.js', () => ({ prisma: {} }))
 const { creerApp } = await import('../src/app.js')
 const { rechercherAvecSecours } = await import('../src/profils/fournisseurs/index.js')
 const { extraireListe } = await import('../src/profils/fournisseurs/n8n.js')
-const app = creerApp({ journal: false })
+const app = creerApp({ journal: false, garde: gardeTest })
 
 const reponseN8n = (corps, status = 200) => ({ status, data: typeof corps === 'string' ? corps : JSON.stringify(corps) })
 const PROFILS_N8N = [
@@ -45,7 +46,7 @@ describe('POST /api/profils/rechercher', () => {
   it('met des valeurs par défaut au lieu et au nombre de pages', async () => {
     axiosPost.mockResolvedValue(reponseN8n({ profiles: [] }))
     const res = await request(app).post('/api/profils/rechercher').send({ requete: 'devops' }).expect(200)
-    expect(res.body).toEqual({ profils: [], rejetes: 0, source: 'n8n' })
+    expect(res.body).toEqual({ profils: [], rejetes: 0, source: 'n8n', secours: false })
     expect(axiosPost.mock.calls[0][1]).toEqual({ query: 'devops', location: '', maxPages: 1 })
   })
 
