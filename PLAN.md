@@ -763,6 +763,8 @@ Fin du lot : critères de `L0.1` cochés, section « Tests » du README écrite,
 
 ### L0.5 — Rattachement des données existantes au compte
 
+> **État : ✅ livré le 30/10/2026** sur `feat/phase-0-socle`. `userId` tiré de la session, jamais du corps ni de l’URL ; `GET /api/posts/logs` ne renvoie que les journaux du compte connecté ; clé étrangère `GeneratedPostLog.userId → user` (suppression en cascade avec le compte). Limite : 20 appels par minute et par compte, et 60 par IP. Les 2 journaux d’avant les comptes restent sans propriétaire et ne s’affichent pour personne (toujours visibles avec `npm run db:logs`). Tests : 129 backend, dont `TS-ISOLATION` v1 sur deux vrais comptes (lecture, écriture forgée, `?userId=` forgé, journal orphelin, suppression en cascade, quota par compte). Un échec isolé du test de quota n’a pas pu être reproduit en 9 passages ; son message est maintenant détaillé. Vérifié en vrai sur le backend en marche avec deux comptes de test, supprimés ensuite. Le front n’a pas changé : il n’envoyait déjà pas de `userId`.
+
 | Rubrique | Contenu |
 |---|---|
 | Analyser avant | Tous les usages de `userId` (`routes/posts.js`) ; `GET /api/posts/logs`. |

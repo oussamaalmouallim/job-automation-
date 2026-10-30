@@ -54,11 +54,13 @@ export function creerApp({ journal = true, garde, limiteConnexion = true } = {})
   // Tout le reste de l'API demande une session.
   app.use('/api', garde || exigerSession(auth))
 
-  // Routes qui consomment de l'IA ou un quota de recherche : limitées par IP pour protéger les clés.
-  const limiteIa = limiter({ windowMs: 60_000, max: 20 })
-  app.use('/api/posts/generate', limiteIa)
-  app.use('/api/n8n',            limiteIa)
-  app.use('/api/profils/rechercher', limiteIa)
+  // Routes qui consomment de l'IA ou un quota de recherche (lot L0.5) :
+  // 20 appels par minute et par compte, et 60 par IP (plusieurs comptes derrière une même adresse).
+  const parCompte = limiter({ windowMs: 60_000, max: 20, cle: (req) => `compte:${req.utilisateur.id}` })
+  const parIp     = limiter({ windowMs: 60_000, max: 60 })
+  for (const chemin of ['/api/posts/generate', '/api/n8n', '/api/profils/rechercher']) {
+    app.use(chemin, parIp, parCompte)
+  }
 
   app.use('/api/posts',   postRoutes)
   app.use('/api/n8n',     n8nRoutes)

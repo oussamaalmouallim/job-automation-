@@ -186,7 +186,8 @@ La CI (`.github/workflows/ci.yml`) lance lint, tests, build, synchro du design e
 
 - Clés uniquement dans `backend/.env` et `~/n8n.env`, tous deux hors du dépôt.
 - Comptes : mots de passe hachés, sessions par cookie httpOnly, limite de tentatives, lien de réinitialisation à usage unique (détails : [docs/architecture.md](docs/architecture.md#comptes-et-connexion)).
-- Le backend limite les routes IA à 20 appels par minute et par IP, et ne relaie que 3 webhooks n8n.
+- Le backend limite les routes IA à 20 appels par minute et par compte (60 par IP), et ne relaie que 3 webhooks n8n.
+- Chaque journal de post appartient au compte qui l'a généré : un compte ne voit jamais ceux d'un autre (tests d'isolation dans `backend/test/isolation.test.js`).
 - La limite de dépense de la clé OpenRouter (sur openrouter.ai) reste la vraie protection en démo publique.
 - Une ancienne clé Google figure dans l'historique git du dépôt public : la restreindre à « Custom Search API » dans Google Cloud, ou la remplacer.
 

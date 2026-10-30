@@ -1,4 +1,8 @@
-/** Génération des posts LinkedIn par OpenRouter (deepseek) et historique des posts générés. */
+/**
+ * Génération des posts LinkedIn par OpenRouter (deepseek) et historique des posts générés.
+ * Lot L0.5 : l'utilisateur vient toujours de la session (req.utilisateur, posé par exigerSession),
+ * jamais du corps ni de l'URL. Chacun ne voit que ses propres journaux.
+ */
 import { Router } from 'express'
 import axios from 'axios'
 import { prisma } from '../lib/prisma.js'
@@ -28,7 +32,7 @@ Réponds uniquement avec le texte du post, sans commentaire.`
 // POST /api/posts/generate
 // La clé OpenRouter reste ici, côté serveur : le navigateur ne la voit jamais.
 router.post('/generate', async (req, res) => {
-  const { type, description, tech, technologies, tone, userId } = req.body ?? {}
+  const { type, description, tech, technologies, tone } = req.body ?? {}
 
   if (!description?.trim()) {
     return res.status(400).json({ error: 'La description est obligatoire' })
@@ -71,7 +75,7 @@ router.post('/generate', async (req, res) => {
 
     const log = await prisma.generatedPostLog.create({
       data: {
-        userId: userId || null,
+        userId: req.utilisateur.id,
         type: type || null,
         description,
         technologies: userTechnologies || null,
@@ -90,13 +94,11 @@ router.post('/generate', async (req, res) => {
   }
 })
 
-// GET /api/posts/logs
+// GET /api/posts/logs : les 50 derniers journaux de l'utilisateur connecté (un ?userId= est ignoré).
 router.get('/logs', async (req, res) => {
   try {
-    const { userId } = req.query
-
     const logs = await prisma.generatedPostLog.findMany({
-      where: userId ? { userId: String(userId) } : undefined,
+      where: { userId: req.utilisateur.id },
       orderBy: { createdAt: 'desc' },
       take: 50,
     })

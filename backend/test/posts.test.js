@@ -1,7 +1,7 @@
 /** Génération des posts (routes/posts.js), avec OpenRouter et Prisma simulés. */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import request from 'supertest'
-import { gardeTest } from './aides.js'
+import { gardeTest, UTILISATEUR_TEST } from './aides.js'
 
 const { axiosPost, creerLog } = vi.hoisted(() => ({ axiosPost: vi.fn(), creerLog: vi.fn() }))
 
@@ -37,11 +37,18 @@ describe('POST /api/posts/generate', () => {
     expect(options.headers.Authorization).toBe('Bearer cle-de-test')
     expect(creerLog).toHaveBeenCalledOnce()
     expect(creerLog.mock.calls[0][0].data).toMatchObject({
+      userId: UTILISATEUR_TEST.id,
       description: 'Un pipeline n8n',
       technologies: 'n8n, React',
       model: 'deepseek/deepseek-chat',
       generatedContent: 'Mon post LinkedIn',
     })
+  })
+
+  it('ignore un userId envoyé dans le corps : le propriétaire vient de la session', async () => {
+    axiosPost.mockResolvedValue(reponseOpenRouter('Post'))
+    await request(app).post('/api/posts/generate').send({ description: 'Un post', userId: 'quelqu-un-d-autre' }).expect(200)
+    expect(creerLog.mock.calls[0][0].data.userId).toBe(UTILISATEUR_TEST.id)
   })
 
   it('refuse une description vide (400) sans appeler OpenRouter', async () => {

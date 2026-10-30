@@ -11,7 +11,7 @@ import { join, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import { createRequire } from 'node:module'
 import request from 'supertest'
-import { gardeTest } from './aides.js'
+import { gardeTest, UTILISATEUR_TEST } from './aides.js'
 
 const URL_TEST = process.env.DATABASE_URL_TEST || 'postgresql://linkedai:linkedai@localhost:5433/linkedai?schema=test'
 process.env.DATABASE_URL = URL_TEST
@@ -50,7 +50,9 @@ describe('PostgreSQL', () => {
     expect(await prisma.generatedPostLog.count()).toBe(0)
   })
 
-  it('POST /api/posts/generate enregistre le journal dans PostgreSQL', async () => {
+  it('POST /api/posts/generate enregistre le journal dans PostgreSQL, au nom du compte', async () => {
+    // Le journal est relié au compte par une clé étrangère (lot L0.5) : le compte doit exister.
+    await prisma.user.create({ data: { id: UTILISATEUR_TEST.id, name: UTILISATEUR_TEST.name, email: UTILISATEUR_TEST.email } })
     axiosPost.mockResolvedValue({ data: { choices: [{ message: { content: 'Post écrit en base' } }] } })
     const app = creerApp({ journal: false, garde: gardeTest })
 
@@ -58,7 +60,7 @@ describe('PostgreSQL', () => {
       .send({ type: 'Projet technique', description: 'Pipeline n8n', tech: 'n8n', tone: 'Humain' }).expect(200)
 
     const enBase = await prisma.generatedPostLog.findUnique({ where: { id: res.body.log.id } })
-    expect(enBase).toMatchObject({ description: 'Pipeline n8n', technologies: 'n8n', tone: 'Humain', generatedContent: 'Post écrit en base' })
+    expect(enBase).toMatchObject({ userId: UTILISATEUR_TEST.id, description: 'Pipeline n8n', technologies: 'n8n', tone: 'Humain', generatedContent: 'Post écrit en base' })
     expect(enBase.createdAt).toBeInstanceOf(Date)
   })
 

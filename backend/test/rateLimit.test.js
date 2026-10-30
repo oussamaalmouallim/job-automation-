@@ -33,4 +33,15 @@ describe('limiter', () => {
     await new Promise((r) => setTimeout(r, 80))
     await request(app).get('/').expect(200)
   })
+
+  it('compte par la clé choisie : deux comptes derrière la même IP ont chacun leur quota', async () => {
+    const app = express()
+    app.use((req, _res, next) => { req.utilisateur = { id: req.get('X-Compte') }; next() })
+    app.use(limiter({ windowMs: 60_000, max: 2, cle: (req) => `compte:${req.utilisateur.id}` }))
+    app.get('/', (_, res) => res.json({ ok: true }))
+
+    for (let i = 0; i < 2; i++) await request(app).get('/').set('X-Compte', 'a').expect(200)
+    await request(app).get('/').set('X-Compte', 'a').expect(429)
+    await request(app).get('/').set('X-Compte', 'b').expect(200)
+  })
 })

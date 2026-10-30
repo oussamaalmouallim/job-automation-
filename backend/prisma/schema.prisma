@@ -7,9 +7,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Un journal par post généré. userId vient de la session (lot L0.5) ; les journaux d'avant les comptes
+// restent sans propriétaire (null) et ne s'affichent pour personne.
 model GeneratedPostLog {
   id               String   @id @default(cuid())
   userId           String?
+  user             User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
   type             String?
   description      String
   technologies     String?
@@ -29,15 +32,16 @@ model GeneratedPostLog {
 // par Better Auth et rangés dans Account.password ; les sessions vivent en base.
 
 model User {
-  id            String    @id
+  id            String             @id
   name          String
-  email         String    @unique
-  emailVerified Boolean   @default(false)
+  email         String             @unique
+  emailVerified Boolean            @default(false)
   image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
   sessions      Session[]
   accounts      Account[]
+  postLogs      GeneratedPostLog[]
 
   @@map("user")
 }
