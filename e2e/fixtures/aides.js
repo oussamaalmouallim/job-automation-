@@ -1,0 +1,66 @@
+/**
+ * Outils communs des tests de bout en bout.
+ * - simulerApi : remplace le backend (posts, n8n) par des réponses fixes et note chaque appel ;
+ *   tout appel /api non prévu échoue, pour qu'un nouvel appel ne passe pas inaperçu.
+ * - Les ressources externes (police Google, html-to-image sur jsDelivr) sont servies en local :
+ *   la suite tourne sans Internet.
+ * - erreursConsole : erreurs JavaScript et console de la page.
+ */
+import { createRequire } from 'node:module'
+import { readFileSync } from 'node:fs'
+import { POST_GENERE, RESSOURCES, VISUEL, PROFILS, PROFILS_NORMALISES } from './donnees.js'
+
+const require = createRequire(import.meta.url)
+const HTML_TO_IMAGE = readFileSync(require.resolve('html-to-image/dist/html-to-image.js'), 'utf8')
+
+export const CLE_STOCKAGE = 'linkedai-storage'
+
+const REPONSES = {
+  'posts/generate': () => ({ status: 200, json: { success: true, post: POST_GENERE } }),
+  'n8n/resource-suggestions': () => ({ status: 200, json: RESSOURCES }),
+  'n8n/generate-visual': () => ({ status: 200, json: VISUEL }),
+  'n8n/scraper': () => ({ status: 200, json: { profiles: PROFILS } }),
+  'profils/rechercher': () => ({ status: 200, json: { profils: PROFILS_NORMALISES, rejetes: 0, source: 'n8n' } }),
+}
+
+export async function simulerApi(page, remplacements = {}) {
+  const appels = []
+
+  await page.route('**/api/**', async (route) => {
+    const requete = route.request()
+    const chemin = new URL(requete.url()).pathname.replace(/^.*\/api\//, '')
+    const corps = requete.postDataJSON?.() ?? null
+    appels.push({ chemin, methode: requete.method(), corps })
+
+    const reponse = (remplacements[chemin] || REPONSES[chemin])?.(corps)
+    if (!reponse) return route.fulfill({ status: 599, body: `Appel non simulé : ${chemin}` })
+    return route.fulfill({ status: reponse.status, contentType: 'application/json', body: JSON.stringify(reponse.json) })
+  })
+
+  await page.route('https://cdn.jsdelivr.net/npm/html-to-image@*/**', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/javascript', body: HTML_TO_IMAGE }))
+  await page.route(/fonts\.(googleapis|gstatic)\.com/, (route) =>
+    route.fulfill({ status: 200, contentType: 'text/css', body: '' }))
+
+  return {
+    appels,
+    vers: (chemin) => appels.filter((a) => a.chemin === chemin),
+  }
+}
+
+// Remplit le stockage du navigateur avant le chargement, une seule fois (une actualisation garde l'état de l'app).
+export async function prechargerNavigateur(page, etat) {
+  await page.addInitScript(([cle, valeur]) => {
+    if (!window.localStorage.getItem(cle)) window.localStorage.setItem(cle, valeur)
+  }, [CLE_STOCKAGE, JSON.stringify(etat)])
+}
+
+export function erreursConsole(page) {
+  const erreurs = []
+  page.on('console', (msg) => { if (msg.type() === 'error') erreurs.push(msg.text()) })
+  page.on('pageerror', (err) => erreurs.push(err.message))
+  return erreurs
+}
+
+export const lireStockage = (page) =>
+  page.evaluate((cle) => JSON.parse(window.localStorage.getItem(cle) || 'null'), CLE_STOCKAGE)

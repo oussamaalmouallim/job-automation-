@@ -1,4 +1,4 @@
-/** cloneme: P-03 — Scraper LinkedIn : lancement via le backend (webhook n8n), lecture souple de la réponse, filtre, export CSV. */
+/** cloneme: P-03 — Scraper LinkedIn : recherche via le backend (profils normalisés), ou webhook n8n réglé à la main ; filtre, export CSV. */
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
@@ -7,7 +7,7 @@ import { ScanSearch, Download, Trash2, UsersRound, Settings, CircleCheck, Circle
 import useAppStore from '../store/useAppStore'
 import { avecActivite } from '../store/useActiviteStore'
 import { exporterProfilsCsv } from '../lib/exportCsv'
-import { API_BASE } from '../services/api'
+import { rechercherProfils } from '../services/api'
 import Page from '../components/ui/Page'
 import { Card, CardHeader } from '../components/ui/Card'
 import { Field, Input, Select } from '../components/ui/Field'
@@ -18,8 +18,8 @@ import TableProfils from '../components/scraper/TableProfils'
 
 const envScraperWebhook = import.meta.env.VITE_N8N_SCRAPER_WEBHOOK || ''
 
-// Par défaut le scraper passe par le backend, qui relaie vers n8n (même chemin en local et en démo).
-const getDefaultScraperWebhook = () => envScraperWebhook || `${API_BASE}/n8n/scraper`
+// Par défaut, la recherche passe par le backend, qui choisit le fournisseur et normalise les profils.
+// Un webhook réglé dans Paramètres (ou VITE_N8N_SCRAPER_WEBHOOK) est appelé directement, comme avant.
 
 const parseMaybeJson = (value) => {
   if (typeof value !== 'string') return value
@@ -54,8 +54,10 @@ const findProfiles = (data) => {
 export default function Scraper() {
   const navigate = useNavigate()
   const { scrapedProfiles, addProfiles, clearProfiles, settings } = useAppStore()
-  const scraperWebhook = settings.scraperWebhook?.trim() || getDefaultScraperWebhook()
-  const hasScraperWebhook = Boolean(scraperWebhook)
+  const webhookPerso = settings.scraperWebhook?.trim() || envScraperWebhook
+  // Toujours vrai, comme avant le lot L1.2 : le backend sert de source par défaut. Le badge reste affiché ;
+  // l'écran du scraper est repris aux lots L1.5 et L1.6.
+  const hasScraperWebhook = true
 
   const [form, setForm] = useState({
     query: 'ingenieur cloud maroc',
@@ -70,13 +72,33 @@ export default function Scraper() {
     setForm((f) => ({ ...f, [name]: value }))
   }
 
+  // Recherche par le backend : profils déjà normalisés, rejets comptés.
+  const lancerParBackend = async () => {
+    try {
+      const { profils, rejetes } = await avecActivite(rechercherProfils({
+        requete: form.query, lieu: form.location, pages: Number(form.maxPages),
+      }))
+      if (profils.length > 0) {
+        addProfiles(profils)
+        toast.success(`${profils.length} profils recuperes !${rejetes ? ` (${rejetes} ignorés : lien de profil invalide)` : ''}`)
+      } else {
+        toast(rejetes ? `Aucun profil exploitable : ${rejetes} résultats sans lien de profil valide.` : 'Aucun profil trouvé pour cette recherche.', { icon: '!' })
+      }
+    } catch (err) {
+      toast.error(err.message)
+    }
+  }
+
   const handleLaunch = async () => {
-    if (!hasScraperWebhook) {
-      toast.error("Configure d'abord l'URL du webhook scraper dans Parametres.")
+    setLoading(true)
+    if (!webhookPerso) {
+      await lancerParBackend()
+      setLoading(false)
       return
     }
 
-    setLoading(true)
+    // Webhook réglé à la main : appel direct et lecture souple de la réponse, comme avant le lot L1.2.
+    const scraperWebhook = webhookPerso
     try {
       const prompt = `scrape linkedin ${form.query} ${form.location} maxPages:${form.maxPages}`
       const res = await avecActivite(axios.post(

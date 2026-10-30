@@ -23,7 +23,7 @@ Navigateur (front React)
         ├─▶ n8n :5678                    3 webhooks autorisés
         │     ├─ resource-suggestions    docs + conseils (aucun appel externe)
         │     ├─ generate-visual         visuel HTML (deepseek)
-        │     └─ scraper                 profils LinkedIn (Google Custom Search)
+        │     └─ scraper                 profils LinkedIn (Google Custom Search), appelé par /api/profils/rechercher
         └─▶ SQLite (Prisma)              historique des posts générés
 ```
 
@@ -62,6 +62,7 @@ npm run dev
 │   ├── src/app.js         application : CORS, limite d'appels, routes
 │   ├── src/index.js       point d'entrée : charge .env, ouvre le port
 │   ├── src/routes/        posts.js (OpenRouter + historique), n8n.js (relais)
+│   ├── src/profils/       recherche de profils : fournisseurs (n8n), normalisation
 │   ├── src/lib/           prisma.js, rateLimit.js
 │   ├── prisma/            schéma et migration SQLite
 │   ├── scripts/           init-db.js, list-post-logs.js
@@ -152,6 +153,16 @@ Aucun test n'appelle OpenRouter, n8n ou Google : ces services sont simulés.
 |---|---|---|
 | `npm test` | tests unitaires et d'intégration, backend puis front (Vitest) | `backend/test/`, `frontend/src/**/*.test.{js,jsx}` |
 | `npm run test:e2e` | tests de bout en bout dans Chromium (Playwright) ; démarre le front tout seul | `e2e/*.spec.js` |
+
+La suite de non-régression (`e2e/tnr/`) rejoue les parcours existants avec un backend simulé (`e2e/fixtures/aides.js`) :
+
+| Fichier | Parcours |
+|---|---|
+| `posts.spec.js` | génération d'un post (succès, description vide, erreur du backend), ressources, visuel IA et export PNG |
+| `scraper.spec.js` | recherche, filtre, export CSV, persistance après actualisation, erreur de n8n |
+| `navigation.spec.js` | dashboard (vide et rempli), recherche globale, paramètres, page 404, mobile 375 px, toutes les routes |
+
+Un appel `/api` non prévu par la simulation fait échouer le test. La police Google et html-to-image sont servis en local : la suite tourne sans Internet.
 
 - Pendant le développement : `npm run test:watch --prefix frontend` (ou `--prefix backend`) relance les tests à chaque sauvegarde.
 - Avant le premier `test:e2e` sur une machine : `npx playwright install chromium`.

@@ -38,14 +38,24 @@ Le visuel est affiché dans un iframe isolé (`sandbox="allow-scripts"`, sans ac
 ### Scraper des profils
 
 ```text
-Scraper.jsx → POST /api/n8n/scraper { query, location, maxPages }
-  → n8n workflow linkedin-scraper-webhook
-      → Google Custom Search, page par page (10 profils par page, 10 pages au plus)
-  ← { profiles: [{ name, title, link, snippet, image }] }
-  → addProfiles() dans le store
+Scraper.jsx → services/api.js rechercherProfils()
+  → POST /api/profils/rechercher { requete, lieu, pages }      (backend/src/profils/routes.js)
+      → fournisseurs, essayés dans l'ordre                       (profils/fournisseurs/index.js)
+          → n8n : workflow linkedin-scraper-webhook → Google Custom Search, 10 profils par page, 10 pages au plus
+      → normalisation                                            (profils/normaliser.js)
+  ← { profils: [{ urlNormalisee, nom, poste, entreprise, lieu, extrait, image, source }], rejetes, source }
+  → versProfilLocal() puis addProfiles() dans le store           (forme gardée : name, title, link, snippet…)
 ```
 
-Si un webhook est réglé dans Paramètres (ou `VITE_N8N_SCRAPER_WEBHOOK`), le front l'appelle à la place du backend.
+La normalisation :
+
+- ramène l'adresse à `https://www.linkedin.com/in/<identifiant>` (sous-domaine pays, langue, paramètres retirés) ;
+- retire « - LinkedIn », les troncatures « ... », les caractères invisibles et les entités HTML ;
+- sépare le poste de l'entreprise quand le titre l'annonce (« at », « chez », « @ », ou « Nom - Poste - Entreprise ») ;
+- ne garde le lieu que s'il est écrit explicitement ;
+- rejette, en les comptant, les résultats qui ne sont pas une page de profil.
+
+Si un webhook est réglé dans Paramètres (ou `VITE_N8N_SCRAPER_WEBHOOK`), le front l'appelle directement, sans normalisation, comme avant.
 
 ## API du backend
 
@@ -54,6 +64,7 @@ Si un webhook est réglé dans Paramètres (ou `VITE_N8N_SCRAPER_WEBHOOK`), le f
 | GET | `/api/health` | — | `{ status: 'ok', version }` |
 | POST | `/api/posts/generate` | `{ type, description, tech, tone }` | `{ success, post, log }` · 400 si description vide ou > 2000 caractères · 502 si OpenRouter échoue |
 | GET | `/api/posts/logs` | `?userId=` (optionnel) | `{ success, logs }` (50 derniers) |
+| POST | `/api/profils/rechercher` | `{ requete, lieu?, pages? }` (1 à 10 pages) | `{ profils, rejetes, source }` · 400 si paramètres invalides · 502 si aucun fournisseur ne répond |
 | POST | `/api/n8n/:nom` | relayé tel quel | réponse de n8n · 404 si `nom` n'est pas autorisé |
 
 Webhooks autorisés : `resource-suggestions`, `generate-visual`, `scraper`.
@@ -62,7 +73,7 @@ Webhooks autorisés : `resource-suggestions`, `generate-visual`, `scraper`.
 
 - **Clés** : `OPENROUTER_API_KEY` dans `backend/.env` ; clés n8n dans `~/n8n.env`. Le build du front n'en contient aucune.
 - **CORS** : seules les origines de `CORS_ORIGINS` peuvent appeler le backend depuis un navigateur.
-- **Limite** : 20 appels par minute et par IP sur `/api/posts/generate` et `/api/n8n` (`backend/src/lib/rateLimit.js`, en mémoire). `trust proxy` est activé pour lire l'IP réelle derrière un tunnel.
+- **Limite** : 20 appels par minute et par IP sur `/api/posts/generate`, `/api/n8n` et `/api/profils/rechercher` (`backend/src/lib/rateLimit.js`, en mémoire). `trust proxy` est activé pour lire l'IP réelle derrière un tunnel.
 - **Relais n8n** : liste blanche de 3 webhooks ; le reste de n8n n'est jamais exposé.
 
 ## Données

@@ -65,8 +65,10 @@ curl -s -X POST http://localhost:4000/api/n8n/resource-suggestions -H "Content-T
 ```
 
 ```bash
-curl -s -X POST http://localhost:4000/api/n8n/scraper -H "Content-Type: application/json" -d '{"query":"ingenieur cloud","location":"maroc","maxPages":1}'
+curl -s -X POST http://localhost:4000/api/profils/rechercher -H "Content-Type: application/json" -d '{"requete":"ingenieur cloud","lieu":"maroc","pages":1}'
 ```
+
+C'est la route qu'utilise l'app : le backend appelle le webhook `scraper`, puis normalise les profils. Chaque page consomme une requête Google.
 
 ## Quotas
 

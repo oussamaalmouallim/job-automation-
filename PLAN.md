@@ -712,6 +712,8 @@ Fin du lot : critères de `L0.1` cochés, section « Tests » du README écrite,
 
 ### L0.2 — Suite de non-régression des parcours existants
 
+> **État : ✅ livré le 30/10/2026** sur `feat/phase-0-socle`. 17 tests Playwright couvrent les 9 parcours de `TNR-GLOBAL`, plus l’ouverture de chaque route. Ils passent sans modification de l’application et restent stables sur 3 passages (51 sur 51). Avec la route `/scraper` retirée volontairement, 4 tests échouent. Constat au passage : l’export PNG écrit deux erreurs dans la console, parce que html-to-image ne peut pas lire la feuille de police Google ; l’export fonctionne quand même. À traiter avec le visuel (`L4.5`).
+
 | Rubrique | Contenu |
 |---|---|
 | Analyser avant | Chaque page de `frontend/src/pages/` et les appels de `services/api.js`. |
@@ -828,6 +830,8 @@ Fin du lot : critères de `L0.1` cochés, section « Tests » du README écrite,
 | Livrables | Module profils, migration, import local étendu (L0.7). |
 
 ### L1.2 — Interface `FournisseurProfils` et normalisation
+
+> **État : ✅ livré le 30/10/2026** sur `feat/phase-0-socle`. Route `POST /api/profils/rechercher`, fournisseur n8n, essai des fournisseurs dans l’ordre, normalisation validée par zod. Les règles viennent de 2 échantillons réels de 10 résultats (sous-domaines pays, suffixes « - LinkedIn », titres tronqués, caractères invisibles, « at », « @ ») : 0 rejet sur les deux. Hypothèse C8 confirmée : le suffixe et l’entreprise restaient mêlés au poste. Le lieu n’apparaît presque jamais de façon explicite dans les extraits. Tests : 70 backend, 12 front, 20 de bout en bout (stables sur 3 passages), plus un parcours réel dans le navigateur.
 
 | Rubrique | Contenu |
 |---|---|
